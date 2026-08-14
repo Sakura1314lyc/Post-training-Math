@@ -1,5 +1,7 @@
 # GSM8K Post-training Experiment
 
+[English](README.md) | [简体中文](README_zh.md)
+
 The main assignment track is now:
 
 > `Qwen/Qwen2.5-1.5B` (raw pretrained base) → GSM8K LoRA-SFT → paired evaluation
