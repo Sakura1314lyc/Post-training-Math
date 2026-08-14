@@ -1,5 +1,5 @@
-### model: historical auxiliary track (continued SFT from an Instruct checkpoint)
-model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct
+### model: raw pretrained checkpoint (main assignment track)
+model_name_or_path: Qwen/Qwen2.5-1.5B
 trust_remote_code: true
 
 ### method
@@ -20,7 +20,7 @@ preprocessing_num_workers: 4
 dataloader_num_workers: 2
 
 ### output
-output_dir: outputs/qwen25_15b_lora_sft_v1
+output_dir: outputs/qwen25_15b_base_lora_sft_v1
 logging_steps: 10
 save_steps: 100
 plot_loss: true
@@ -31,7 +31,7 @@ report_to: none
 seed: 42
 per_device_train_batch_size: 1
 gradient_accumulation_steps: 8
-learning_rate: 2.0e-5
+learning_rate: 1.0e-4
 num_train_epochs: 1.0
 lr_scheduler_type: cosine
 warmup_steps: 90

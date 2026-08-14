@@ -35,6 +35,21 @@ def resolve_dtype(name: str, device: str) -> torch.dtype:
     return torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
 
 
+def resolve_terminators(tokenizer) -> list[int]:
+    """Stop on both the model EOS and Qwen ChatML's assistant terminator."""
+    terminators = []
+    if tokenizer.eos_token_id is not None:
+        terminators.append(tokenizer.eos_token_id)
+
+    im_end_id = tokenizer.convert_tokens_to_ids("<|im_end|>")
+    if isinstance(im_end_id, int) and im_end_id >= 0 and im_end_id not in terminators:
+        terminators.append(im_end_id)
+
+    if not terminators:
+        raise ValueError("Tokenizer has no usable EOS token")
+    return terminators
+
+
 def load_evaluation_dataset(args: argparse.Namespace):
     source_split = "train" if args.eval_split == "train_validation" else "test"
     dataset = load_dataset(args.dataset_name, args.dataset_config, split=source_split)
@@ -107,6 +122,10 @@ def main():
 
     print("Loading tokenizer and model...")
     tokenizer = AutoTokenizer.from_pretrained(args.base_model)
+    terminators = resolve_terminators(tokenizer)
+    pad_token_id = tokenizer.pad_token_id
+    if pad_token_id is None:
+        pad_token_id = tokenizer.eos_token_id
     base_model = AutoModelForCausalLM.from_pretrained(args.base_model, dtype=dtype)
 
     if args.adapter:
@@ -154,8 +173,8 @@ def main():
                 **inputs,
                 max_new_tokens=args.max_new_tokens,
                 do_sample=False,
-                pad_token_id=tokenizer.eos_token_id,
-                eos_token_id=tokenizer.eos_token_id,
+                pad_token_id=pad_token_id,
+                eos_token_id=terminators,
             )
 
         generated_ids = outputs[0][inputs["input_ids"].shape[1]:]
@@ -210,6 +229,8 @@ def main():
             "do_sample": False,
             "max_new_tokens": args.max_new_tokens,
             "dtype": str(dtype).removeprefix("torch."),
+            "eos_token_ids": terminators,
+            "pad_token_id": pad_token_id,
         },
         "environment": {
             "torch": torch.__version__,
