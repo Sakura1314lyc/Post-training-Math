@@ -1,7 +1,7 @@
 {
   "evaluation_version_expected": "gsm8k_numeric_v2",
-  "base_source": "results/base_15b_same_pipeline_100_rescored_v2.json",
-  "sft_source": "results/sft_15b_same_pipeline_100_rescored_v2.json",
+  "base_source": "results/archive/instruct_15b/base_15b_same_pipeline_100_rescored_v2.json",
+  "sft_source": "results/archive/instruct_15b/sft_15b_same_pipeline_100_rescored_v2.json",
   "base_evaluation_version": "gsm8k_numeric_v2",
   "sft_evaluation_version": "gsm8k_numeric_v2",
   "summary": {

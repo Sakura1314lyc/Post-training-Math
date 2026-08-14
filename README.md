@@ -4,13 +4,12 @@
 
 The main assignment track is now:
 
-> `Qwen/Qwen2.5-1.5B` (raw pretrained base) → GSM8K LoRA-SFT → paired evaluation
+> `Qwen/Qwen2.5-Math-1.5B` (math-specialized base) → GSM8K LoRA-SFT → paired evaluation
 
-Qwen describes this checkpoint as a pretraining-only base model and explicitly
-recommends applying post-training such as SFT or RLHF. The
-[official model card](https://huggingface.co/Qwen/Qwen2.5-1.5B) also provides a
-Qwen chat template, so the pre-SFT and post-SFT models can use the same
-serialized prompt.
+Qwen describes this checkpoint as a math-specialized base model and a better
+starting point for fine-tuning. The
+[official model card](https://huggingface.co/Qwen/Qwen2.5-Math-1.5B) provides a
+Qwen chat template, so the pre-SFT and post-SFT models can use the same prompt.
 
 The earlier `Qwen2.5-1.5B-Instruct` → continued-SFT experiment is preserved as
 an auxiliary ablation. It shows that continued SFT can improve answer-format
@@ -18,14 +17,29 @@ following while reducing numerical reasoning accuracy.
 
 ## Experiment assets
 
-- Main config: `configs/qwen25_15b_base_lora_sft_v1.yaml`
-- Main initial checkpoint: `Qwen/Qwen2.5-1.5B`
+- Main config: `configs/main/qwen25_math_15b_base_lora_sft_v1.yaml`
+- Main initial checkpoint: `Qwen/Qwen2.5-Math-1.5B`
 - Training data: `data/gsm8k_sft_formal.json`
-- Historical Instruct config: `configs/qwen25_15b_lora_sft_v1.yaml`
-- Historical analysis: `results/base_sft_transition_analysis_v2.json`
+- General-base control: `configs/controls/qwen25_15b_base_lora_sft_v1.yaml`
+- Historical configs: `configs/archive/`
+- Historical analysis: `results/archive/instruct_15b/base_sft_transition_analysis_v2.json`
 
 The existing GSM8K SFT data is valid for both tracks and is intentionally
 reused. Changing the initial checkpoint does not require regenerating targets.
+
+## Project layout
+
+```text
+configs/main/       # Qwen2.5-Math main experiment
+configs/controls/   # General Qwen2.5 base control
+configs/archive/    # Earlier Instruct and 0.5B experiments
+data/               # GSM8K SFT data and dataset registration
+scripts/            # Data preparation, evaluation, rescoring, comparison
+results/            # New main/control results
+results/archive/    # Historical Instruct continued-SFT results
+tests/              # Evaluator unit tests
+outputs/            # Local checkpoints, ignored by Git
+```
 
 ## Canonical workflow
 
@@ -42,16 +56,16 @@ The first run downloads the roughly 3.1 GB base checkpoint.
 
 ```bash
 python3 scripts/eval_sft_adapter.py \
-  --base-model Qwen/Qwen2.5-1.5B \
+  --base-model Qwen/Qwen2.5-Math-1.5B \
   --eval-split train_validation \
   --num-samples 20 \
-  --output results/dev_raw_base_15b_smoke20.json
+  --output results/dev_math_base_15b_smoke20.json
 ```
 
 ### 2. Train LoRA-SFT from the raw base
 
 ```bash
-llamafactory-cli train configs/qwen25_15b_base_lora_sft_v1.yaml
+llamafactory-cli train configs/main/qwen25_math_15b_base_lora_sft_v1.yaml
 ```
 
 This uses the Qwen ChatML template for both training and evaluation. The
@@ -67,19 +81,19 @@ Evaluate the complete raw-base validation baseline:
 
 ```bash
 python3 scripts/eval_sft_adapter.py \
-  --base-model Qwen/Qwen2.5-1.5B \
+  --base-model Qwen/Qwen2.5-Math-1.5B \
   --eval-split train_validation \
-  --output results/dev_raw_base_15b.json
+  --output results/dev_math_base_15b.json
 ```
 
 Evaluate each saved adapter checkpoint:
 
 ```bash
 python3 scripts/eval_sft_adapter.py \
-  --base-model Qwen/Qwen2.5-1.5B \
-  --adapter outputs/qwen25_15b_base_lora_sft_v1/checkpoint-100 \
+  --base-model Qwen/Qwen2.5-Math-1.5B \
+  --adapter outputs/qwen25_math_15b_base_lora_sft_v1/checkpoint-100 \
   --eval-split train_validation \
-  --output results/dev_raw_base_sft_15b_ckpt100.json
+  --output results/dev_math_base_sft_15b_ckpt100.json
 ```
 
 Repeat for checkpoint-200 onward and select by validation numerical accuracy,
@@ -91,24 +105,24 @@ Omitting `--num-samples` evaluates all 1,319 GSM8K test examples.
 
 ```bash
 python3 scripts/eval_sft_adapter.py \
-  --base-model Qwen/Qwen2.5-1.5B \
+  --base-model Qwen/Qwen2.5-Math-1.5B \
   --eval-split test \
-  --output results/final_raw_base_15b_test.json
+  --output results/final_math_base_15b_test.json
 
 python3 scripts/eval_sft_adapter.py \
-  --base-model Qwen/Qwen2.5-1.5B \
-  --adapter outputs/qwen25_15b_base_lora_sft_v1/checkpoint-BEST \
+  --base-model Qwen/Qwen2.5-Math-1.5B \
+  --adapter outputs/qwen25_math_15b_base_lora_sft_v1/checkpoint-BEST \
   --eval-split test \
-  --output results/final_raw_base_sft_15b_test.json
+  --output results/final_math_base_sft_15b_test.json
 ```
 
 ### 5. Produce the paired report
 
 ```bash
 python3 scripts/compare_base_sft.py \
-  --base results/final_raw_base_15b_test.json \
-  --sft results/final_raw_base_sft_15b_test.json \
-  --output results/final_raw_base_sft_analysis.json
+  --base results/final_math_base_15b_test.json \
+  --sft results/final_math_base_sft_15b_test.json \
+  --output results/final_math_base_sft_analysis.json
 ```
 
 The report includes relaxed numerical accuracy, strict `####` accuracy, paired

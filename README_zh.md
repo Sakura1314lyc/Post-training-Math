@@ -4,21 +4,36 @@
 
 本项目当前的主实验路线为：
 
-> `Qwen/Qwen2.5-1.5B`（原始预训练 Base Model）→ GSM8K LoRA-SFT → 配对评测
+> `Qwen/Qwen2.5-Math-1.5B`（数学领域 Base Model）→ GSM8K LoRA-SFT → 配对评测
 
-Qwen 官方将该 checkpoint 定义为仅经过预训练的 Base Model，并明确建议在其上进行 SFT、RLHF 等后训练。其[官方模型卡](https://huggingface.co/Qwen/Qwen2.5-1.5B)也提供了 Qwen Chat Template，因此 SFT 前后的模型可以使用完全相同的序列化 Prompt 进行公平比较。
+Qwen 官方将该 checkpoint 定义为数学领域 Base Model，并称其更适合作为后续微调的起点。其[官方模型卡](https://huggingface.co/Qwen/Qwen2.5-Math-1.5B)也提供了 Qwen Chat Template，因此 SFT 前后的模型可以使用完全相同的序列化 Prompt 进行公平比较。
 
 此前完成的 `Qwen2.5-1.5B-Instruct` → continued-SFT 实验不会删除，而是作为附加消融实验保留。该实验说明：继续 SFT 可能提高答案格式遵循能力，但同时降低模型原有的数值推理准确率。
 
 ## 实验资源
 
-- 主实验配置：`configs/qwen25_15b_base_lora_sft_v1.yaml`
-- 初始模型：`Qwen/Qwen2.5-1.5B`
+- 主实验配置：`configs/main/qwen25_math_15b_base_lora_sft_v1.yaml`
+- 初始模型：`Qwen/Qwen2.5-Math-1.5B`
 - 训练数据：`data/gsm8k_sft_formal.json`
-- 历史 Instruct 实验配置：`configs/qwen25_15b_lora_sft_v1.yaml`
-- 历史实验分析：`results/base_sft_transition_analysis_v2.json`
+- 通用 Base 对照配置：`configs/controls/qwen25_15b_base_lora_sft_v1.yaml`
+- 历史实验配置：`configs/archive/`
+- 历史实验分析：`results/archive/instruct_15b/base_sft_transition_analysis_v2.json`
 
 现有 GSM8K SFT 数据可以直接用于 Base Model，不需要重新生成。SFT 数据描述的是输入问题与目标推理轨迹，并不依赖模型初始化来自 Base 还是 Instruct checkpoint。
+
+## 项目结构
+
+```text
+configs/main/       # Qwen2.5-Math 主实验
+configs/controls/   # 通用 Qwen2.5 Base 对照实验
+configs/archive/    # 早期 Instruct 与 0.5B 实验
+data/               # GSM8K SFT 数据与数据集注册信息
+scripts/            # 数据准备、评测、重评分与配对分析
+results/            # 新的主实验和对照实验结果
+results/archive/    # 历史 Instruct continued-SFT 结果
+tests/              # 评测器单元测试
+outputs/            # 本地模型 checkpoint，不提交到 Git
+```
 
 ## 标准实验流程
 
@@ -35,10 +50,10 @@ conda activate sft
 
 ```bash
 python3 scripts/eval_sft_adapter.py \
-  --base-model Qwen/Qwen2.5-1.5B \
+  --base-model Qwen/Qwen2.5-Math-1.5B \
   --eval-split train_validation \
   --num-samples 20 \
-  --output results/dev_raw_base_15b_smoke20.json
+  --output results/dev_math_base_15b_smoke20.json
 ```
 
 该步骤只评测 20 道题，用于确认以下环节可以正常工作：
@@ -54,12 +69,12 @@ Smoke Test 只能检查评测管线，不用于得出最终性能结论。
 ### 2. 从 Raw Base Model 开始 LoRA-SFT
 
 ```bash
-llamafactory-cli train configs/qwen25_15b_base_lora_sft_v1.yaml
+llamafactory-cli train configs/main/qwen25_math_15b_base_lora_sft_v1.yaml
 ```
 
 主要训练参数如下：
 
-- Base Model：`Qwen/Qwen2.5-1.5B`
+- Base Model：`Qwen/Qwen2.5-Math-1.5B`
 - 数据集：GSM8K train
 - 微调方法：LoRA
 - LoRA rank：8
@@ -87,19 +102,19 @@ seed: 42
 
 ```bash
 python3 scripts/eval_sft_adapter.py \
-  --base-model Qwen/Qwen2.5-1.5B \
+  --base-model Qwen/Qwen2.5-Math-1.5B \
   --eval-split train_validation \
-  --output results/dev_raw_base_15b.json
+  --output results/dev_math_base_15b.json
 ```
 
 然后评测每个 LoRA checkpoint，例如：
 
 ```bash
 python3 scripts/eval_sft_adapter.py \
-  --base-model Qwen/Qwen2.5-1.5B \
-  --adapter outputs/qwen25_15b_base_lora_sft_v1/checkpoint-100 \
+  --base-model Qwen/Qwen2.5-Math-1.5B \
+  --adapter outputs/qwen25_math_15b_base_lora_sft_v1/checkpoint-100 \
   --eval-split train_validation \
-  --output results/dev_raw_base_sft_15b_ckpt100.json
+  --output results/dev_math_base_sft_15b_ckpt100.json
 ```
 
 依次评测 checkpoint-200、checkpoint-300 等，并根据 validation 数值准确率选择最佳 checkpoint。
@@ -118,19 +133,19 @@ Raw Base Model：
 
 ```bash
 python3 scripts/eval_sft_adapter.py \
-  --base-model Qwen/Qwen2.5-1.5B \
+  --base-model Qwen/Qwen2.5-Math-1.5B \
   --eval-split test \
-  --output results/final_raw_base_15b_test.json
+  --output results/final_math_base_15b_test.json
 ```
 
 最佳 SFT checkpoint：
 
 ```bash
 python3 scripts/eval_sft_adapter.py \
-  --base-model Qwen/Qwen2.5-1.5B \
-  --adapter outputs/qwen25_15b_base_lora_sft_v1/checkpoint-BEST \
+  --base-model Qwen/Qwen2.5-Math-1.5B \
+  --adapter outputs/qwen25_math_15b_base_lora_sft_v1/checkpoint-BEST \
   --eval-split test \
-  --output results/final_raw_base_sft_15b_test.json
+  --output results/final_math_base_sft_15b_test.json
 ```
 
 其中 `checkpoint-BEST` 应替换为 validation 上选出的最佳 checkpoint。
@@ -139,9 +154,9 @@ python3 scripts/eval_sft_adapter.py \
 
 ```bash
 python3 scripts/compare_base_sft.py \
-  --base results/final_raw_base_15b_test.json \
-  --sft results/final_raw_base_sft_15b_test.json \
-  --output results/final_raw_base_sft_analysis.json
+  --base results/final_math_base_15b_test.json \
+  --sft results/final_math_base_sft_15b_test.json \
+  --output results/final_math_base_sft_analysis.json
 ```
 
 对比报告包含：
