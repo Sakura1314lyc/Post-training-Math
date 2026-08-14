@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import math
 import re
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, DecimalException
 
 
-EVALUATION_VERSION = "gsm8k_numeric_v2"
+EVALUATION_VERSION = "gsm8k_numeric_v3"
 
 SYSTEM_PROMPT = (
     "You are a helpful math assistant. "
@@ -18,10 +18,18 @@ SYSTEM_PROMPT = (
 
 NUMBER = r"[-+]?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][-+]?\d+)?"
 
-_STRICT_ANSWER_PATTERN = re.compile(rf"####\s*\$?\s*({NUMBER})", re.IGNORECASE)
+_ANSWER_MARKER_PATTERN = re.compile(rf"####\s*\$?\s*({NUMBER})", re.IGNORECASE)
+_STRICT_ANSWER_PATTERN = re.compile(
+    rf"(?:^|\n)\s*####\s*\$?\s*({NUMBER})\s*\Z",
+    re.IGNORECASE,
+)
+_COMPLETED_ANSWER_LINE_PATTERN = re.compile(
+    rf"(?:^|\n)\s*####\s*\$?\s*{NUMBER}[^\n]*\n",
+    re.IGNORECASE,
+)
 
 _PREDICTION_PATTERNS = (
-    _STRICT_ANSWER_PATTERN,
+    _ANSWER_MARKER_PATTERN,
     re.compile(rf"\\boxed\{{\s*\$?\s*({NUMBER})\s*\}}", re.IGNORECASE),
     re.compile(
         rf"(?:final numerical answer|final answer|answer)"
@@ -81,17 +89,21 @@ def normalize_number(value: str | None) -> str | None:
         return None
 
     cleaned = str(value).strip().replace(",", "").replace("$", "").replace("%", "")
+
     try:
         number = Decimal(cleaned)
-    except InvalidOperation:
+
+        if not number.is_finite():
+            return None
+
+        if number == number.to_integral():
+            return str(number.quantize(Decimal("1")))
+
+        return format(number.normalize(), "f").rstrip("0").rstrip(".")
+    except DecimalException:
+        # Malformed or excessively large model outputs should be scored as
+        # ordinary wrong predictions instead of aborting the whole evaluation.
         return cleaned
-
-    if not number.is_finite():
-        return None
-    if number == number.to_integral():
-        return str(number.quantize(Decimal("1")))
-
-    return format(number.normalize(), "f").rstrip("0").rstrip(".")
 
 
 def score_response(response: str, ground_truth: str) -> dict[str, str | bool | None]:
@@ -124,6 +136,11 @@ def score_response(response: str, ground_truth: str) -> dict[str, str | bool | N
 def follows_answer_format(text: str) -> bool:
     """Return whether the response contains a parseable ``#### <number>`` answer."""
     return bool(_STRICT_ANSWER_PATTERN.search(text.replace(",", "")))
+
+
+def has_completed_answer_line(text: str) -> bool:
+    """Return whether a complete ``#### <number>`` line ended with a newline."""
+    return bool(_COMPLETED_ANSWER_LINE_PATTERN.search(text.replace(",", "")))
 
 
 def exact_mcnemar_p_value(base_only_correct: int, sft_only_correct: int) -> float:

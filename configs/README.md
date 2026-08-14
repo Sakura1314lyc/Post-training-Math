@@ -4,7 +4,14 @@
 
 The assignment's primary track. / 课程任务的主实验。
 
-- `qwen25_math_15b_base_lora_sft_v1.yaml`: `Qwen2.5-Math-1.5B` → GSM8K LoRA-SFT.
+- `qwen25_math_15b_base_lora_sft_v1.yaml`: initial `Qwen2.5-Math-1.5B`
+  → GSM8K LoRA-SFT run (`learning_rate: 1e-4`).
+- `qwen25_math_15b_base_lora_sft_v2.yaml`: controlled lower-learning-rate
+  follow-up (`learning_rate: 2e-5`, checkpoints every 50 steps).
+- `qwen25_math_15b_base_lora_sft_v3.yaml`: controlled LoRA-scope follow-up;
+  keeps the v2 learning rate while targeting `q_proj`, `v_proj`, and
+  `lm_head` to reduce internal disruption and learn output termination
+  directly.
 
 ## `controls/`
 

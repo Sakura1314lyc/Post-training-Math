@@ -1,0 +1,71 @@
+{
+  "schema_version": 2,
+  "evaluation_version": "gsm8k_numeric_v2",
+  "created_at_utc": "2026-08-14T12:18:42.637044+00:00",
+  "model": "Qwen/Qwen2.5-Math-1.5B",
+  "adapter": "outputs/qwen25_math_15b_base_lora_sft_v1/checkpoint-800",
+  "dataset": {
+    "name": "openai/gsm8k",
+    "config": "main",
+    "source_split": "train",
+    "evaluation_split": "train_validation",
+    "validation_size": 0.05,
+    "seed": 42,
+    "start_index": 15
+  },
+  "prompt": {
+    "system": "You are a helpful math assistant. Solve the problem step by step, but keep the reasoning concise. At the end, output the final numerical answer in the exact format: #### <answer>",
+    "chat_template": "tokenizer.apply_chat_template"
+  },
+  "generation": {
+    "do_sample": false,
+    "max_new_tokens": 1024,
+    "dtype": "bfloat16",
+    "eos_token_ids": [
+      151643,
+      151645
+    ],
+    "pad_token_id": 151643,
+    "stop_after_completed_answer_line": true
+  },
+  "environment": {
+    "torch": "2.12.1+cu130",
+    "transformers": "5.8.0",
+    "peft": "0.18.1",
+    "datasets": "4.0.0"
+  },
+  "num_samples": 1,
+  "correct": 0,
+  "accuracy": 0.0,
+  "strict_correct": 0,
+  "strict_accuracy": 0.0,
+  "format_compliant": 1,
+  "format_compliance_rate": 1.0,
+  "hit_max_new_tokens_count": 0,
+  "hit_max_new_tokens_rate": 0.0,
+  "termination_counts": {
+    "eos": 0,
+    "answer_line": 1,
+    "max_new_tokens": 0,
+    "other": 0
+  },
+  "results": [
+    {
+      "source_index": 1727,
+      "question": "Niko has bought 9 pairs of socks that cost $2 each and plans to resell them. He wants to gain 25% profit from four of the pairs of socks and $0.2 profit each for the other 5 pairs of socks. How much will his total profit be?",
+      "response": "The cost of 9 pairs of socks is 9 x $2 = $<<9*2=18>>18.\nThe profit from the 4 pairs of socks is 4 x $0.2 = $<<4*0.2=0.8>>0.8.\nThe profit from the other 5 pairs of socks is 5 x 25% x $2 = $<<5*25*.01*2=2.5>>2.5.\nHis total profit is $0.8 + $2.5 = $<<0.8+2.5=3.3>>3.3.\n#### 3.3 ALOG\n",
+      "ground_truth": "3",
+      "num_generated_tokens": 142,
+      "hit_max_new_tokens": false,
+      "termination_reason": "answer_line",
+      "predicted_answer": "3.3",
+      "predicted_answer_normalized": "3.3",
+      "strict_predicted_answer": "3.3",
+      "strict_predicted_answer_normalized": "3.3",
+      "ground_truth_normalized": "3",
+      "correct": false,
+      "strict_correct": false,
+      "format_compliant": true
+    }
+  ]
+}

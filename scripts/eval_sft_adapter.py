@@ -7,15 +7,44 @@ from pathlib import Path
 import torch
 from datasets import load_dataset
 from peft import PeftModel
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    StoppingCriteria,
+    StoppingCriteriaList,
+)
 
 from evaluation_utils import (
     EVALUATION_VERSION,
     SYSTEM_PROMPT,
     extract_ground_truth,
     follows_answer_format,
+    has_completed_answer_line,
     score_response,
 )
+
+
+class CompletedAnswerLineStoppingCriteria(StoppingCriteria):
+    """Stop batch-size-one generation after a completed ``####`` answer line."""
+
+    def __init__(self, tokenizer, prompt_length: int, tail_token_window: int = 256):
+        self.tokenizer = tokenizer
+        self.prompt_length = prompt_length
+        self.tail_token_window = tail_token_window
+
+    def __call__(self, input_ids, scores, **kwargs) -> torch.BoolTensor:
+        decisions = []
+        for sequence in input_ids:
+            generated_start = max(
+                self.prompt_length,
+                int(sequence.shape[-1]) - self.tail_token_window,
+            )
+            generated_tail = self.tokenizer.decode(
+                sequence[generated_start:],
+                skip_special_tokens=True,
+            )
+            decisions.append(has_completed_answer_line(generated_tail))
+        return torch.tensor(decisions, dtype=torch.bool, device=input_ids.device)
 
 
 def package_version(package: str) -> str | None:
@@ -94,11 +123,17 @@ def main():
         type=int,
         help="Number of examples. Omit to evaluate the entire selected split.",
     )
-    parser.add_argument("--max-new-tokens", type=int, default=512)
+    parser.add_argument("--max-new-tokens", type=int, default=1024)
     parser.add_argument(
         "--dtype",
         choices=("auto", "bfloat16", "float16", "float32"),
         default="auto",
+    )
+    parser.add_argument(
+        "--stop-after-answer-line",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Stop after a completed #### answer line (enabled by default).",
     )
     parser.add_argument("--show-responses", action="store_true")
     parser.add_argument("--overwrite", action="store_true")
@@ -145,6 +180,13 @@ def main():
     correct = 0
     strict_correct = 0
     format_compliant = 0
+    hit_max_new_tokens_count = 0
+    termination_counts = {
+        "eos": 0,
+        "answer_line": 0,
+        "max_new_tokens": 0,
+        "other": 0,
+    }
     results = []
 
     for idx, sample in enumerate(dataset):
@@ -167,6 +209,12 @@ def main():
             add_generation_prompt=True,
         )
         inputs = tokenizer(prompt, return_tensors="pt").to(device)
+        prompt_length = int(inputs["input_ids"].shape[1])
+        stopping_criteria = StoppingCriteriaList()
+        if args.stop_after_answer_line:
+            stopping_criteria.append(
+                CompletedAnswerLineStoppingCriteria(tokenizer, prompt_length)
+            )
 
         with torch.inference_mode():
             outputs = model.generate(
@@ -175,10 +223,26 @@ def main():
                 do_sample=False,
                 pad_token_id=pad_token_id,
                 eos_token_id=terminators,
+                stopping_criteria=stopping_criteria,
             )
 
-        generated_ids = outputs[0][inputs["input_ids"].shape[1]:]
+        generated_ids = outputs[0][prompt_length:]
+        num_generated_tokens = int(generated_ids.shape[-1])
+        hit_max_new_tokens = num_generated_tokens >= args.max_new_tokens
         response = tokenizer.decode(generated_ids, skip_special_tokens=True)
+        ended_with_eos = (
+            num_generated_tokens > 0 and int(generated_ids[-1].item()) in terminators
+        )
+        completed_answer_line = has_completed_answer_line(response)
+        if ended_with_eos:
+            termination_reason = "eos"
+        elif args.stop_after_answer_line and completed_answer_line:
+            termination_reason = "answer_line"
+        elif hit_max_new_tokens:
+            termination_reason = "max_new_tokens"
+        else:
+            termination_reason = "other"
+
         score = score_response(response, ground_truth)
         compliant = follows_answer_format(response)
 
@@ -188,11 +252,15 @@ def main():
             strict_correct += 1
         if compliant:
             format_compliant += 1
+        if hit_max_new_tokens:
+            hit_max_new_tokens_count += 1
+        termination_counts[termination_reason] += 1
 
         print(
             f"[{idx + 1}/{len(dataset)}] source={sample['source_index']} "
             f"pred={score['predicted_answer_normalized']} gt={score['ground_truth_normalized']} "
-            f"correct={score['correct']}"
+            f"correct={score['correct']} tokens={num_generated_tokens} "
+            f"stop={termination_reason}"
         )
         if args.show_responses:
             print(response)
@@ -202,6 +270,9 @@ def main():
             "question": question,
             "response": response,
             "ground_truth": ground_truth,
+            "num_generated_tokens": num_generated_tokens,
+            "hit_max_new_tokens": hit_max_new_tokens,
+            "termination_reason": termination_reason,
             **score,
             "format_compliant": compliant,
         })
@@ -231,6 +302,7 @@ def main():
             "dtype": str(dtype).removeprefix("torch."),
             "eos_token_ids": terminators,
             "pad_token_id": pad_token_id,
+            "stop_after_completed_answer_line": args.stop_after_answer_line,
         },
         "environment": {
             "torch": torch.__version__,
@@ -245,6 +317,9 @@ def main():
         "strict_accuracy": strict_accuracy,
         "format_compliant": format_compliant,
         "format_compliance_rate": format_rate,
+        "hit_max_new_tokens_count": hit_max_new_tokens_count,
+        "hit_max_new_tokens_rate": hit_max_new_tokens_count / len(dataset),
+        "termination_counts": termination_counts,
         "results": results,
     }
 
@@ -255,6 +330,14 @@ def main():
     print(f"Final: {correct}/{len(dataset)} = {accuracy:.2%}")
     print(f"Strict #### accuracy: {strict_correct}/{len(dataset)} = {strict_accuracy:.2%}")
     print(f"Format compliance: {format_compliant}/{len(dataset)} = {format_rate:.2%}")
+    print(
+        f"Hit max new tokens: {hit_max_new_tokens_count}/{len(dataset)} = "
+        f"{hit_max_new_tokens_count / len(dataset):.2%}"
+    )
+    print(
+        "Termination: "
+        + ", ".join(f"{key}={value}" for key, value in termination_counts.items())
+    )
     print("Saved to:", args.output)
 
 

@@ -1,0 +1,44 @@
+### model: narrow internal LoRA scope and adapt the output head directly
+model_name_or_path: Qwen/Qwen2.5-Math-1.5B
+trust_remote_code: true
+
+### method
+stage: sft
+do_train: true
+do_eval: true
+finetuning_type: lora
+lora_rank: 8
+lora_target: q_proj,v_proj,lm_head
+
+### dataset
+dataset: gsm8k_sft_formal
+dataset_dir: data
+template: qwen
+cutoff_len: 1024
+overwrite_cache: true
+preprocessing_num_workers: 4
+dataloader_num_workers: 2
+
+### output
+output_dir: outputs/qwen25_math_15b_base_lora_sft_v3
+logging_steps: 10
+save_steps: 50
+plot_loss: true
+overwrite_output_dir: true
+report_to: none
+
+### train
+seed: 42
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+learning_rate: 2.0e-5
+num_train_epochs: 1.0
+lr_scheduler_type: cosine
+warmup_steps: 90
+bf16: true
+
+### eval
+val_size: 0.05
+per_device_eval_batch_size: 1
+eval_strategy: steps
+eval_steps: 50
