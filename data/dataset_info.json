@@ -1,0 +1,31 @@
+{
+  "gsm8k_sft_formal": {
+  "file_name": "gsm8k_sft_formal.json",
+  "formatting": "alpaca",
+  "columns": {
+    "prompt": "instruction",
+    "query": "input",
+    "response": "output",
+    "system": "system"
+  }
+},
+  "gsm8k_sft_smoke": {
+    "file_name": "gsm8k_sft_smoke.json",
+    "formatting": "alpaca",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output"
+    }
+  },
+
+  "gsm8k_sft_train": {
+    "file_name": "gsm8k_sft_train.json",
+    "formatting": "alpaca",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output"
+    }
+  }
+}

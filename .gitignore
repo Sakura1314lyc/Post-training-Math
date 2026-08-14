@@ -1,0 +1,5 @@
+__pycache__/
+*.py[cod]
+
+# Model checkpoints are large and should be stored as experiment artifacts.
+outputs/
