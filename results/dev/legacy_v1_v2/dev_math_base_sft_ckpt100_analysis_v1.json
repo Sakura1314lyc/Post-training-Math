@@ -1,7 +1,7 @@
 {
   "evaluation_version_expected": "gsm8k_numeric_v3",
-  "base_source": "results/dev_math_base_15b_v3.json",
-  "sft_source": "results/dev_math_base_sft_15b_ckpt100.json",
+  "base_source": "results/dev/base/dev_math_base_15b_v3.json",
+  "sft_source": "results/dev/legacy_v1_v2/dev_math_base_sft_15b_ckpt100.json",
   "base_evaluation_version": "gsm8k_numeric_v3",
   "sft_evaluation_version": "gsm8k_numeric_v3",
   "summary": {

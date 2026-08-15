@@ -2,256 +2,167 @@
 
 [English](README.md) | [简体中文](README_zh.md)
 
-本项目当前的主实验路线为：
+本项目完成了课程代码实战中的 SFT 部分：
 
-> `Qwen/Qwen2.5-Math-1.5B`（数学领域 Base Model）→ GSM8K LoRA-SFT → 配对评测
+> `Qwen/Qwen2.5-Math-1.5B`（Raw Math Base）→ GSM8K LoRA-SFT → validation
+> 选择 → 官方 test 配对评测
 
-Qwen 官方将该 checkpoint 定义为数学领域 Base Model，并称其更适合作为后续微调的起点。其[官方模型卡](https://huggingface.co/Qwen/Qwen2.5-Math-1.5B)也提供了 Qwen Chat Template，因此 SFT 前后的模型可以使用完全相同的序列化 Prompt 进行公平比较。
+完整分析见[中文实验报告](reports/SFT_EXPERIMENT_REPORT_zh.md)。
 
-此前完成的 `Qwen2.5-1.5B-Instruct` → continued-SFT 实验不会删除，而是作为附加消融实验保留。该实验说明：继续 SFT 可能提高答案格式遵循能力，但同时降低模型原有的数值推理准确率。
+## 最终结果
 
-## 实验资源
+| GSM8K 官方 test（1,319 题） | Raw Base | SFT v7 |
+|---|---:|---:|
+| 数值准确率 | 71.80% | 71.65% |
+| 严格 `####` 准确率 | 0.00% | 71.65% |
+| 格式遵循率 | 0.00% | 98.26% |
+| 达到 1,024 token 上限 | 3.11% | 1.36% |
+| 平均生成 token | 371.74 | 102.30 |
+| 全量评测时间 | 179m 0s | 64m 4s |
 
-- 主实验配置：`configs/main/qwen25_math_15b_base_lora_sft_v1.yaml` 至
-  `qwen25_math_15b_base_lora_sft_v3.yaml`
+逐题配对中，Base 独自答对 187 题，SFT 独自答对 185 题，精确双侧 McNemar
+`p=0.958659`。因此本实验不能声称 SFT 提升了数值推理准确率；可靠结论是 v7
+在准确率基本持平的情况下，将输出格式、终止行为与评测效率明显改善。
+
+## 最终方案
+
 - 初始模型：`Qwen/Qwen2.5-Math-1.5B`
-- 训练数据：`data/gsm8k_sft_formal.json`
-- 通用 Base 对照配置：`configs/controls/qwen25_15b_base_lora_sft_v1.yaml`
-- 历史实验配置：`configs/archive/`
-- 历史实验分析：`results/archive/instruct_15b/base_sft_transition_analysis_v2.json`
+- 框架：LLaMA-Factory + PEFT LoRA
+- 配置：[`configs/main/qwen25_math_15b_base_lora_sft_v7.yaml`](configs/main/qwen25_math_15b_base_lora_sft_v7.yaml)
+- 训练数据：`data/gsm8k_sft_clean.json`，共 7,473 条
+- LoRA：`q_proj,v_proj,lm_head`，rank 8，alpha 16
+- 训练：1 epoch，学习率 `2e-5`，seed 42
+- 最终 adapter：`outputs/qwen25_math_15b_base_lora_sft_v7/checkpoint-888`
+- 评分器：`gsm8k_numeric_v3`
 
-现有 GSM8K SFT 数据可以直接用于 Base Model，不需要重新生成。SFT 数据描述的是输入问题与目标推理轨迹，并不依赖模型初始化来自 Base 还是 Instruct checkpoint。
-
-## 当前主实验结论
-
-Raw Base 在固定 374 道 validation 上取得 `319/374 = 85.29%`。目前完成
-完整评测的最佳 v1 adapter 是 checkpoint-100，结果为 `308/374 = 82.35%`，
-点估计下降 `2.94` 个百分点。逐题配对中，Base 独自答对 53 题，SFT 独自答对
-42 题；精确双侧 McNemar 检验为 `p=0.3049`，因此该下降没有达到统计显著，
-不能写成“SFT 显著降低准确率”。
-
-更明确的问题来自模型行为：v1 checkpoint-100 在 374 道题中没有一次原生
-EOS，且只有一道题同时满足严格格式与答案正确；v1 后期 checkpoint 进一步退化。
-v2 将学习率从 `1e-4` 降至 `2e-5`，在 20 题诊断中只减缓了退化，没有解决
-终止和格式异常。这些负结果会完整保留，而不是删除。
-
-下一步 v3 控制实验保持 v2 的数据和学习率不变，只把 LoRA target 从全部内部
-投影层改为 `q_proj,v_proj,lm_head`。其目的分别是减少对数学推理能力的扰动，并
-直接训练输出头学习 ChatML 终止行为。
+v7 数据删除了 GSM8K 答案中的 23,716 个 `<<expression=result>>` 计算器标注，
+同时逐条验证 `####` 最终答案不变。相比使用原始标注的 v3，v7 在 validation 上
+由 80.75% 恢复到 85.29%。
 
 ## 项目结构
 
 ```text
-configs/main/       # Qwen2.5-Math 主实验
-configs/controls/   # 通用 Qwen2.5 Base 对照实验
-configs/archive/    # 早期 Instruct 与 0.5B 实验
-data/               # GSM8K SFT 数据与数据集注册信息
-scripts/            # 数据准备、评测、重评分与配对分析
-results/            # 新的主实验和对照实验结果
-results/archive/    # 历史 Instruct continued-SFT 结果
-tests/              # 评测器单元测试
-outputs/            # 本地模型 checkpoint，不提交到 Git
+configs/main/               # 主实验 v1、v2、v3、最终 v7
+configs/archive/math_15b/   # v4-v6 失败消融配置
+configs/archive/            # 更早的 Instruct/0.5B 实验
+data/                       # 训练数据与 LLaMA-Factory 数据注册
+scripts/                    # 数据准备、评测、重评分、配对分析
+results/dev/                # validation、smoke 与消融结果
+results/final/              # 最终官方 test 结果
+results/archive/            # 历史 continued-SFT 结果
+reports/                    # 完整实验报告
+tests/                      # 单元测试
+outputs/                    # 本地 checkpoint，不提交 Git
 ```
 
-## 标准实验流程
+## 复现实验
 
-请进入项目目录并激活 `sft` Conda 环境：
+进入项目并激活环境：
 
 ```bash
 cd /home/sakura/projects/llm/post-training-math
 conda activate sft
 ```
 
-### 1. 对 Raw Base Model 进行 Smoke Test
+### 1. 重新生成清洗数据
 
-第一次运行需要下载约 3.1 GB 的 Base Model。
-
-```bash
-python3 scripts/eval_sft_adapter.py \
-  --base-model Qwen/Qwen2.5-Math-1.5B \
-  --eval-split train_validation \
-  --num-samples 20 \
-  --max-new-tokens 1024 \
-  --stop-after-answer-line \
-  --output results/dev_math_base_15b_smoke20_tok1024.json
-```
-
-该步骤只评测 20 道题，用于确认以下环节可以正常工作：
-
-- 模型与 tokenizer 加载；
-- Qwen Chat Template；
-- GPU 与 bfloat16 推理；
-- GSM8K validation split；
-- 答案提取、评分和 JSON 保存。
-
-Smoke Test 只能检查评测管线，不用于得出最终性能结论。
-
-### 2. 从 Raw Base Model 开始 LoRA-SFT
-
-已经完成的 v1 和 v2 作为负结果对照保留。下一轮控制实验运行：
+仓库已经包含生成后的数据；需要验证数据处理时运行：
 
 ```bash
-llamafactory-cli train configs/main/qwen25_math_15b_base_lora_sft_v3.yaml
+python3 scripts/prepare_clean_sft_data.py \
+  --input data/gsm8k_sft_formal.json \
+  --output data/gsm8k_sft_clean.json \
+  --overwrite
 ```
 
-主要训练参数如下：
+预期输出为 7,473 条样本、删除 23,716 个计算器标注。
 
-- Base Model：`Qwen/Qwen2.5-Math-1.5B`
-- 数据集：GSM8K train
-- 微调方法：LoRA
-- LoRA rank：8
-- LoRA target：全部适合的线性层
-- 有效 batch size：`1 × 8 = 8`
-- 学习率：`1e-4`
-- 训练轮数：1 epoch
-- 随机种子：42
-- 验证集比例：5%
+### 2. 训练最终 SFT
 
-训练和评测都使用 Qwen ChatML 格式。评测脚本同时将 Base Model 的
-`<|endoftext|>` 和 ChatML 的 `<|im_end|>` 视为生成停止符，还可以在检测到完整
-`#### <number>` 答案行后停止。每份结果都会记录生成是由 EOS、答案行还是最大
-token 上限终止，避免把数学正确性与终止异常混为一谈。
-
-### 3. 在 Validation Split 上选择 Checkpoint
-
-训练配置使用：
-
-```yaml
-val_size: 0.05
-seed: 42
+```bash
+llamafactory-cli train configs/main/qwen25_math_15b_base_lora_sft_v7.yaml
 ```
 
-`train_validation` 会复现 LLaMA-Factory 训练时使用的同一组 374 条 validation 样本。
+训练日志中的 `eval_loss` 是 token-level teacher-forcing loss，不能单独代表自由生成时
+的数学准确率。checkpoint 选择必须使用完整 validation 生成评测。
 
-首先评测完整的 Raw Base validation baseline：
+### 3. Validation 评测
+
+Raw Base：
 
 ```bash
 python3 scripts/eval_sft_adapter.py \
   --base-model Qwen/Qwen2.5-Math-1.5B \
   --eval-split train_validation \
   --max-new-tokens 1024 \
-  --stop-after-answer-line \
-  --output results/dev_math_base_15b_v3.json
+  --no-stop-after-answer-line \
+  --output results/dev/base/dev_math_base_15b_v3.json
 ```
 
-然后评测每个 LoRA checkpoint，例如：
+SFT v7：
 
 ```bash
 python3 scripts/eval_sft_adapter.py \
   --base-model Qwen/Qwen2.5-Math-1.5B \
-  --adapter outputs/qwen25_math_15b_base_lora_sft_v3/checkpoint-CANDIDATE \
+  --adapter outputs/qwen25_math_15b_base_lora_sft_v7/checkpoint-888 \
   --eval-split train_validation \
   --max-new-tokens 1024 \
-  --stop-after-answer-line \
-  --output results/dev_math_base_sft_v3_15b_ckptCANDIDATE.json
+  --no-stop-after-answer-line \
+  --output results/dev/sft_v7/dev_math_base_sft_v7_15b_ckpt888.json
 ```
 
-将 `checkpoint-CANDIDATE` 替换为实际 checkpoint。20 题 smoke 只用于诊断；
-最终 checkpoint 必须根据完整 validation 数值准确率选择，不能只看 token-level
-`eval_loss`。
+这里显式使用 `--no-stop-after-answer-line`，目的是观察模型是否会通过自己的 EOS 正常
+停止，而不是依赖评测器看到 `####` 后强制截断。
 
-注意：
+### 4. 官方 Test
 
-- 不要只根据 token-level `eval_loss` 选择模型；
-- 不要使用 GSM8K test set 选择 checkpoint；
-- test set 应尽量只用于最终评测，避免测试集信息泄漏。
-
-### 4. 进行最终完整 Test 对比
-
-不指定 `--num-samples` 时，脚本会评测 GSM8K test 的全部 1,319 道题。
-
-Raw Base Model：
+最终结果已经生成并保存在 `results/final/`。如果从头复现，先运行 Base，再使用完全
+相同的生成参数运行 v7；不要用 test 继续选择参数。脚本默认拒绝覆盖已有结果，重复
+运行时请更换 `--output`，或在确认后显式加入 `--overwrite`。
 
 ```bash
 python3 scripts/eval_sft_adapter.py \
   --base-model Qwen/Qwen2.5-Math-1.5B \
   --eval-split test \
   --max-new-tokens 1024 \
-  --stop-after-answer-line \
-  --output results/final_math_base_15b_test.json
-```
+  --no-stop-after-answer-line \
+  --output results/final/test_gsm8k_base_15b_v3.json
 
-最佳 SFT checkpoint：
-
-```bash
 python3 scripts/eval_sft_adapter.py \
   --base-model Qwen/Qwen2.5-Math-1.5B \
-  --adapter outputs/qwen25_math_15b_base_lora_sft_v3/checkpoint-BEST \
+  --adapter outputs/qwen25_math_15b_base_lora_sft_v7/checkpoint-888 \
   --eval-split test \
   --max-new-tokens 1024 \
-  --stop-after-answer-line \
-  --output results/final_math_base_sft_15b_test.json
+  --no-stop-after-answer-line \
+  --output results/final/test_gsm8k_sft_v7_15b_ckpt888_native_v3.json
 ```
 
-其中 `checkpoint-BEST` 应替换为 validation 上选出的最佳 checkpoint。
-
-### 5. 生成 Base 与 SFT 配对分析
+### 5. 配对分析
 
 ```bash
 python3 scripts/compare_base_sft.py \
-  --base results/final_math_base_15b_test.json \
-  --sft results/final_math_base_sft_15b_test.json \
-  --output results/final_math_base_sft_analysis.json
+  --base results/final/test_gsm8k_base_15b_v3.json \
+  --sft results/final/test_gsm8k_sft_v7_15b_ckpt888_native_v3.json \
+  --output results/final/test_base_sft_v7_ckpt888_transition_analysis.json
 ```
 
-对比报告包含：
+## 评测指标
 
-- 宽松数值准确率；
-- 严格 `#### <answer>` 准确率；
-- Base/SFT 样本级正确性转移矩阵；
-- 输出格式遵循率；
-- 回复长度统计；
-- 精确双侧 McNemar 检验。
+- 数值准确率：判断最终数值是否正确，不要求固定输出格式。
+- 严格准确率：答案正确并以 `#### <answer>` 结尾。
+- 格式遵循率：是否以可解析的 `#### <answer>` 结尾。
+- 终止统计：区分原生 EOS、答案行提前停止、token 上限和其他情况。
+- McNemar 检验：利用同题配对结果判断正确率变化是否具有方向性证据。
 
-宽松准确率用于判断模型最终数值结论是否正确，即使模型没有严格遵循指定格式；严格准确率则同时要求答案正确并符合 `#### <answer>` 格式。分别报告二者，可以避免把“推理能力”和“格式遵循能力”混为一谈。
-
-## 历史 Instruct → Continued-SFT 实验
-
-在已经被反复查看的前 100 道 GSM8K test 样本上：
-
-- 宽松数值准确率：73% → 49%；
-- 严格 `####` 准确率：21% → 49%；
-- 可解析的 `#### <number>` 格式遵循率：25% → 100%。
-
-该结果不能作为当前主任务的 Base→SFT 结论，因为初始模型是已经经过后训练的 Instruct Model。同时，这 100 道 test 样本已被用于多次比较，应视为探索性数据。
-
-但该实验仍然有价值，它表明：
-
-> Continued SFT 可以让模型更好地模仿目标数据的输出风格，却可能破坏 Instruct Model 已经具备的部分推理能力。
-
-因此该实验及其结果被完整保留，作为附加消融和负结果分析。
-
-## 脚本说明
-
-- `scripts/eval_sft_adapter.py`：使用同一管线评测 Base Model 或 LoRA adapter。
-- `scripts/evaluation_utils.py`：统一实现 GSM8K 答案提取、数值归一化和评分。
-- `scripts/rescore.py`：使用当前统一评分器重新评分历史 JSON，不覆盖旧文件。
-- `scripts/compare_base_sft.py`：对相同题目的 Base/SFT 结果进行严格配对分析。
-- `scripts/prepare_formal_sft_data.py`：生成正式 Alpaca 格式 GSM8K SFT 数据。
-- `scripts/prepare_sft_data.py`：生成早期 pipeline smoke/full 数据。
+分别报告这些指标，可以避免把“推理正确”“格式对齐”和“生成能正常结束”混为一谈。
 
 ## 测试
-
-运行评分器测试：
 
 ```bash
 python3 -m unittest discover -s tests -v
 ```
 
-当前测试覆盖：
+## 历史结果
 
-- GSM8K ground truth 提取；
-- 整数和小数归一化；
-- `\boxed{}` 答案；
-- 宽松与严格准确率的区别；
-- 结论句中的答案提取；
-- 无答案输出；
-- 精确 McNemar 检验。
-
-## Git 与实验管理建议
-
-- 配置、脚本、README 和小型结果文件应提交到 Git；
-- `outputs/` 中的模型 checkpoint 默认不提交；
-- 每次实验使用不同的 `output_dir` 和结果文件名；
-- 不要在没有 `--overwrite` 的情况下覆盖正式评测结果；
-- 在实验报告中记录模型、checkpoint、数据划分、seed、Prompt、生成参数和评分器版本。
+早期 `Qwen2.5-1.5B-Instruct` continued-SFT、v1-v6 失败消融和调试结果均保留，
+用于展示负结果与实验迭代，不应替代最终 Math Base → SFT v7 结论。
