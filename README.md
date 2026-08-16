@@ -2,30 +2,34 @@
 
 [English](README.md) | [简体中文](README_zh.md)
 
-This repository completes the SFT part of a post-training assignment:
+This repository implements both SFT and On-Policy Distillation (OPD/GKD):
 
-> `Qwen/Qwen2.5-Math-1.5B` (raw math base) → GSM8K LoRA-SFT → held-out
-> validation → paired evaluation on the official test set
+> `Qwen/Qwen2.5-Math-1.5B` (raw math base) → GSM8K LoRA-SFT → on-policy
+> distillation with an Instruct teacher → held-out selection → official test
 
-The detailed experiment report is available in
-[`reports/SFT_EXPERIMENT_REPORT_zh.md`](reports/SFT_EXPERIMENT_REPORT_zh.md).
+Detailed reports: [SFT (Chinese)](reports/SFT_EXPERIMENT_REPORT_zh.md),
+[OPD (English)](reports/OPD_EXPERIMENT_REPORT.md), and
+[OPD (Chinese)](reports/OPD_EXPERIMENT_REPORT_zh.md).
 
 ## Final result
 
-| Official GSM8K test (1,319 examples) | Raw Base | SFT v7 |
-|---|---:|---:|
-| Relaxed numerical accuracy | 71.80% | 71.65% |
-| Strict `####` accuracy | 0.00% | 71.65% |
-| Format compliance | 0.00% | 98.26% |
-| Hit 1,024-token limit | 3.11% | 1.36% |
-| Mean generated tokens | 371.74 | 102.30 |
-| Full evaluation time | 179m 0s | 64m 4s |
+| Official GSM8K test (1,319 examples) | Raw Base | SFT v7 | OPD step 30 |
+|---|---:|---:|---:|
+| Relaxed numerical accuracy | 71.80% | 71.65% | **72.33%** |
+| Strict `####` accuracy | 0.00% | 71.65% | **72.25%** |
+| Format compliance | 0.00% | **98.26%** | 97.73% |
+| Hit 1,024-token limit | 3.11% | **1.36%** | 1.90% |
+| Mean generated tokens | 371.74 | **102.30** | 111.24 |
+| Full evaluation time | 179m 0s | 64m 4s | 75m 0s |
 
 The paired comparison contains 187 Base-only correct answers and 185 SFT-only
 correct answers. The exact two-sided McNemar test gives `p=0.958659`. SFT v7
 therefore does not improve numerical accuracy, but it preserves accuracy while
 substantially improving formatting, termination, generation length, and wall-clock
-evaluation time.
+evaluation time. OPD has 49 SFT-only and 58 OPD-only correct answers, a net
+gain of nine (`+0.68 pp`), but the exact paired McNemar result is not significant
+(`p=0.439440`). OPD therefore provides the best point estimate, not evidence of a
+stable accuracy improvement.
 
 ## Final setup
 
@@ -37,6 +41,9 @@ evaluation time.
 - Training: one epoch, learning rate `2e-5`, seed 42
 - Selected adapter: `outputs/qwen25_math_15b_base_lora_sft_v7/checkpoint-888`
 - Evaluator: `gsm8k_numeric_v3`
+- OPD teacher: `Qwen/Qwen2.5-Math-1.5B-Instruct`, frozen NF4
+- OPD objective: TRL GKD, `lmbda=1.0`, `beta=0.5`, 50 steps / 200 rollouts
+- Selected OPD adapter: `outputs/opd/qwen25_math_15b_gkd_pilot50/checkpoint-30`
 
 The v7 dataset removes 23,716 `<<expression=result>>` calculator annotations
 while preserving every final `####` answer. This recovers validation accuracy
@@ -51,6 +58,7 @@ data/                       # Training data and dataset registry
 scripts/                    # Data preparation and evaluation utilities
 results/dev/                # Validation and diagnostic artifacts
 results/final/              # Final official-test artifacts
+results/opd/                # Teacher, OPD validation/test, and paired analyses
 results/archive/            # Historical continued-SFT experiments
 reports/                    # Experiment reports
 tests/                      # Unit tests
@@ -94,6 +102,27 @@ python3 scripts/compare_base_sft.py \
   --sft results/final/test_gsm8k_sft_v7_15b_ckpt888_native_v3.json \
   --output results/final/test_base_sft_v7_ckpt888_transition_analysis.json
 ```
+
+Run the OPD pilot after producing the SFT v7 adapter:
+
+```bash
+python scripts/train_opd_gkd.py \
+  --output-dir outputs/opd/qwen25_math_15b_gkd_pilot50 \
+  --num-samples 256 \
+  --max-steps 50 \
+  --gradient-accumulation-steps 4 \
+  --learning-rate 5e-6 \
+  --max-new-tokens 256 \
+  --lmbda 1.0 \
+  --beta 0.5 \
+  --save-steps 10 \
+  --save-total-limit 5 \
+  --save-final-adapter
+```
+
+The script exactly reproduces and excludes the fixed 374-example SFT validation
+split. Model checkpoints stay in the ignored `outputs/` directory; tracked OPD
+metrics and paired analyses are under `results/opd/`.
 
 The official test set must not be used for checkpoint or hyperparameter
 selection. Token-level validation loss is also not a substitute for free-generation

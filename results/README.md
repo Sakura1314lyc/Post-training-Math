@@ -9,6 +9,7 @@ dev/sft_v7/     # 最终 v7 validation、smoke 与配对分析
 dev/ablations/  # v4-v6 原生生成失败诊断
 dev/legacy_v1_v2/ # v1/v2、早期 Base、smoke 与 debug 结果
 final/          # 官方 GSM8K test 最终结果
+opd/            # 教师、OPD checkpoint 选择、validation 与最终 test
 archive/        # 历史 Instruct 与 0.5B 实验
 ```
 
@@ -22,6 +23,22 @@ archive/        # 历史 Instruct 与 0.5B 实验
 
 最终配对转移为：共同答对 760、Base-only 187、SFT-only 185、共同答错 187；
 精确双侧 McNemar `p=0.958659`。
+
+## OPD/GKD
+
+OPD 从 SFT v7 开始，以冻结的 `Qwen2.5-Math-1.5B-Instruct` 作为教师。最终选择
+checkpoint-30：
+
+| 官方 test | Base | SFT v7 | OPD step 30 |
+|---|---:|---:|---:|
+| 数值准确率 | 71.80% | 71.65% | **72.33%** |
+| 严格准确率 | 0.00% | 71.65% | **72.25%** |
+| 格式遵循率 | 0.00% | **98.26%** | 97.73% |
+| 达到长度上限 | 3.11% | **1.36%** | 1.90% |
+
+SFT→OPD 为 SFT-only 49、OPD-only 58，净提升 9 题，McNemar `p=0.439440`。
+该结果是正向点估计，但不具有统计显著性。文件说明见
+[`opd/README.md`](opd/README.md)。
 
 ## Validation
 

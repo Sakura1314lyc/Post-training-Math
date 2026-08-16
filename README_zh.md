@@ -2,27 +2,30 @@
 
 [English](README.md) | [简体中文](README_zh.md)
 
-本项目完成了课程代码实战中的 SFT 部分：
+本项目完成了课程代码实战中的 SFT 与 On-Policy Distillation（OPD/GKD）：
 
-> `Qwen/Qwen2.5-Math-1.5B`（Raw Math Base）→ GSM8K LoRA-SFT → validation
-> 选择 → 官方 test 配对评测
+> `Qwen/Qwen2.5-Math-1.5B`（Raw Math Base）→ GSM8K LoRA-SFT →
+> Instruct 教师引导的 on-policy distillation → validation 选型 → 官方 test 配对评测
 
-完整分析见[中文实验报告](reports/SFT_EXPERIMENT_REPORT_zh.md)。
+完整分析见 [SFT 中文报告](reports/SFT_EXPERIMENT_REPORT_zh.md)和
+[OPD 中文报告](reports/OPD_EXPERIMENT_REPORT_zh.md)。
 
 ## 最终结果
 
-| GSM8K 官方 test（1,319 题） | Raw Base | SFT v7 |
-|---|---:|---:|
-| 数值准确率 | 71.80% | 71.65% |
-| 严格 `####` 准确率 | 0.00% | 71.65% |
-| 格式遵循率 | 0.00% | 98.26% |
-| 达到 1,024 token 上限 | 3.11% | 1.36% |
-| 平均生成 token | 371.74 | 102.30 |
-| 全量评测时间 | 179m 0s | 64m 4s |
+| GSM8K 官方 test（1,319 题） | Raw Base | SFT v7 | OPD step 30 |
+|---|---:|---:|---:|
+| 数值准确率 | 71.80% | 71.65% | **72.33%** |
+| 严格 `####` 准确率 | 0.00% | 71.65% | **72.25%** |
+| 格式遵循率 | 0.00% | **98.26%** | 97.73% |
+| 达到 1,024 token 上限 | 3.11% | **1.36%** | 1.90% |
+| 平均生成 token | 371.74 | **102.30** | 111.24 |
+| 全量评测时间 | 179m 0s | 64m 4s | 75m 0s |
 
 逐题配对中，Base 独自答对 187 题，SFT 独自答对 185 题，精确双侧 McNemar
-`p=0.958659`。因此本实验不能声称 SFT 提升了数值推理准确率；可靠结论是 v7
-在准确率基本持平的情况下，将输出格式、终止行为与评测效率明显改善。
+`p=0.958659`。OPD 相比 SFT 为 SFT-only 49、OPD-only 58，净提升 9 题、
+`+0.68 pp`，但 McNemar `p=0.439440`。因此本实验不能声称 SFT 或 OPD 显著提高
+了数值推理准确率；可靠结论是 SFT 明显改善格式与效率，而 OPD 获得了当前最高的
+test 点估计，但伴随轻微格式、截断和长度退化。
 
 ## 最终方案
 
@@ -34,6 +37,9 @@
 - 训练：1 epoch，学习率 `2e-5`，seed 42
 - 最终 adapter：`outputs/qwen25_math_15b_base_lora_sft_v7/checkpoint-888`
 - 评分器：`gsm8k_numeric_v3`
+- OPD 教师：`Qwen/Qwen2.5-Math-1.5B-Instruct`，NF4 4-bit 冻结
+- OPD：TRL GKD，`lmbda=1.0`、`beta=0.5`，50 optimizer steps / 200 rollouts
+- 最终 OPD adapter：`outputs/opd/qwen25_math_15b_gkd_pilot50/checkpoint-30`
 
 v7 数据删除了 GSM8K 答案中的 23,716 个 `<<expression=result>>` 计算器标注，
 同时逐条验证 `####` 最终答案不变。相比使用原始标注的 v3，v7 在 validation 上
@@ -49,6 +55,7 @@ data/                       # 训练数据与 LLaMA-Factory 数据注册
 scripts/                    # 数据准备、评测、重评分、配对分析
 results/dev/                # validation、smoke 与消融结果
 results/final/              # 最终官方 test 结果
+results/opd/                # 教师、OPD validation/test 与配对分析
 results/archive/            # 历史 continued-SFT 结果
 reports/                    # 完整实验报告
 tests/                      # 单元测试
@@ -137,7 +144,39 @@ python3 scripts/eval_sft_adapter.py \
   --output results/final/test_gsm8k_sft_v7_15b_ckpt888_native_v3.json
 ```
 
-### 5. 配对分析
+### 5. OPD/GKD Pilot
+
+OPD 脚本自动复现 SFT 的固定 374 题 validation 并将其排除，避免训练泄漏。学生保持
+BF16 LoRA，教师使用 NF4 4-bit；`outputs/` 中的 checkpoint 不提交 Git。
+
+```bash
+python scripts/train_opd_gkd.py \
+  --output-dir outputs/opd/qwen25_math_15b_gkd_pilot50 \
+  --num-samples 256 \
+  --max-steps 50 \
+  --gradient-accumulation-steps 4 \
+  --learning-rate 5e-6 \
+  --max-new-tokens 256 \
+  --lmbda 1.0 \
+  --beta 0.5 \
+  --save-steps 10 \
+  --save-total-limit 5 \
+  --save-final-adapter
+```
+
+最终 OPD test 评测：
+
+```bash
+python scripts/eval_sft_adapter.py \
+  --base-model Qwen/Qwen2.5-Math-1.5B \
+  --adapter outputs/opd/qwen25_math_15b_gkd_pilot50/checkpoint-30 \
+  --eval-split test \
+  --max-new-tokens 1024 \
+  --no-stop-after-answer-line \
+  --output results/opd/final/test_gsm8k_gkd_pilot50_ckpt30_v3.json
+```
+
+### 6. 配对分析
 
 ```bash
 python3 scripts/compare_base_sft.py \
