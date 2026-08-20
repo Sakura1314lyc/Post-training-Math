@@ -12,20 +12,22 @@
 
 ## 最终结果
 
-| GSM8K 官方 test（1,319 题） | Raw Base | SFT v7 | OPD step 30 |
-|---|---:|---:|---:|
-| 数值准确率 | 71.80% | 71.65% | **72.33%** |
-| 严格 `####` 准确率 | 0.00% | 71.65% | **72.25%** |
-| 格式遵循率 | 0.00% | **98.26%** | 97.73% |
-| 达到 1,024 token 上限 | 3.11% | **1.36%** | 1.90% |
-| 平均生成 token | 371.74 | **102.30** | 111.24 |
-| 全量评测时间 | 179m 0s | 64m 4s | 75m 0s |
+| GSM8K 官方 test（1,319 题） | Raw Base | SFT v7 | OPD seed 42 | OPD 三次均值 ± SD |
+|---|---:|---:|---:|---:|
+| 数值准确率 | 71.80% | 71.65% | 72.33% | **72.91% ± 0.54** |
+| 严格 `####` 准确率 | 0.00% | 71.65% | 72.25% | **72.83% ± 0.54** |
+| 格式遵循率 | 0.00% | **98.26%** | 97.73% | 97.68% ± 0.16 |
+| 达到 1,024 token 上限 | 3.11% | **1.36%** | 1.90% | 1.95% ± 0.16 |
+| 平均生成 token | 371.74 | **102.30** | 111.24 | 111.60 ± 1.34 |
+| 全量评测时间 | 179m 0s | 64m 4s | 75m 0s | 74m 57s ± 2m 48s |
 
 逐题配对中，Base 独自答对 187 题，SFT 独自答对 185 题，精确双侧 McNemar
-`p=0.958659`。OPD 相比 SFT 为 SFT-only 49、OPD-only 58，净提升 9 题、
-`+0.68 pp`，但 McNemar `p=0.439440`。因此本实验不能声称 SFT 或 OPD 显著提高
-了数值推理准确率；可靠结论是 SFT 明显改善格式与效率，而 OPD 获得了当前最高的
-test 点估计，但伴随轻微格式、截断和长度退化。
+`p=0.958659`。OPD seed 42/43/44 的 test 准确率分别为 72.33%、73.39%、
+73.01%，均高于 SFT，三次均值为 `72.91% ± 0.54 pp`。对应 SFT→OPD 的
+McNemar `p` 分别为 0.439440、0.050487 和 0.117213，均未低于 0.05；三次
+validation 也都低于 SFT。因此可靠结论是：SFT 明显改善格式与效率，OPD 的 test
+收益具有跨运行的方向一致性，但仍没有充分统计证据证明稳定提升，并伴随格式、截断和
+长度退化。
 
 ## 最终方案
 
@@ -39,7 +41,8 @@ test 点估计，但伴随轻微格式、截断和长度退化。
 - 评分器：`gsm8k_numeric_v3`
 - OPD 教师：`Qwen/Qwen2.5-Math-1.5B-Instruct`，NF4 4-bit 冻结
 - OPD：TRL GKD，`lmbda=1.0`、`beta=0.5`，50 optimizer steps / 200 rollouts
-- 最终 OPD adapter：`outputs/opd/qwen25_math_15b_gkd_pilot50/checkpoint-30`
+- OPD 报告 checkpoint：三个运行均固定使用 step 30，位于
+  `outputs/opd/qwen25_math_15b_gkd_{pilot50,seed43,seed44}/checkpoint-30`
 
 v7 数据删除了 GSM8K 答案中的 23,716 个 `<<expression=result>>` 计算器标注，
 同时逐条验证 `####` 最终答案不变。相比使用原始标注的 v3，v7 在 validation 上
@@ -164,7 +167,7 @@ python scripts/train_opd_gkd.py \
   --save-final-adapter
 ```
 
-最终 OPD test 评测：
+seed 42 的 OPD test 评测：
 
 ```bash
 python scripts/eval_sft_adapter.py \
@@ -175,6 +178,11 @@ python scripts/eval_sft_adapter.py \
   --no-stop-after-answer-line \
   --output results/opd/final/test_gsm8k_gkd_pilot50_ckpt30_v3.json
 ```
+
+seed 43/44 使用完全相同的超参数和固定 checkpoint-30。当前 `--seed` 同时控制
+256 条训练样本的抽取与训练随机性，因此这里报告的是端到端运行波动，而不是固定数据
+下的纯训练 seed 波动。三次汇总见
+[`opd_ckpt30_multiseed_summary.json`](results/opd/final/opd_ckpt30_multiseed_summary.json)。
 
 ### 6. 配对分析
 

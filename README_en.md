@@ -13,23 +13,26 @@ Detailed reports: [SFT (Chinese)](reports/SFT_EXPERIMENT_REPORT_zh.md),
 
 ## Final result
 
-| Official GSM8K test (1,319 examples) | Raw Base | SFT v7 | OPD step 30 |
-|---|---:|---:|---:|
-| Relaxed numerical accuracy | 71.80% | 71.65% | **72.33%** |
-| Strict `####` accuracy | 0.00% | 71.65% | **72.25%** |
-| Format compliance | 0.00% | **98.26%** | 97.73% |
-| Hit 1,024-token limit | 3.11% | **1.36%** | 1.90% |
-| Mean generated tokens | 371.74 | **102.30** | 111.24 |
-| Full evaluation time | 179m 0s | 64m 4s | 75m 0s |
+| Official GSM8K test (1,319 examples) | Raw Base | SFT v7 | OPD seed 42 | OPD 3-run mean ± SD |
+|---|---:|---:|---:|---:|
+| Relaxed numerical accuracy | 71.80% | 71.65% | 72.33% | **72.91% ± 0.54** |
+| Strict `####` accuracy | 0.00% | 71.65% | 72.25% | **72.83% ± 0.54** |
+| Format compliance | 0.00% | **98.26%** | 97.73% | 97.68% ± 0.16 |
+| Hit 1,024-token limit | 3.11% | **1.36%** | 1.90% | 1.95% ± 0.16 |
+| Mean generated tokens | 371.74 | **102.30** | 111.24 | 111.60 ± 1.34 |
+| Full evaluation time | 179m 0s | 64m 4s | 75m 0s | 74m 57s ± 2m 48s |
 
 The paired comparison contains 187 Base-only correct answers and 185 SFT-only
 correct answers. The exact two-sided McNemar test gives `p=0.958659`. SFT v7
 therefore does not improve numerical accuracy, but it preserves accuracy while
 substantially improving formatting, termination, generation length, and wall-clock
-evaluation time. OPD has 49 SFT-only and 58 OPD-only correct answers, a net
-gain of nine (`+0.68 pp`), but the exact paired McNemar result is not significant
-(`p=0.439440`). OPD therefore provides the best point estimate, not evidence of a
-stable accuracy improvement.
+evaluation time. OPD seeds 42/43/44 reach 72.33%, 73.39%, and 73.01% on test,
+respectively, for a mean of `72.91% ± 0.54 pp`; all three point estimates exceed
+SFT. Their paired McNemar p-values against SFT are 0.439440, 0.050487, and
+0.117213, while all three validation scores are below SFT. The test direction is
+consistent across runs, but the evidence is still insufficient to claim a stable,
+statistically significant improvement. OPD also slightly worsens formatting,
+truncation, and response length.
 
 ## Final setup
 
@@ -43,7 +46,8 @@ stable accuracy improvement.
 - Evaluator: `gsm8k_numeric_v3`
 - OPD teacher: `Qwen/Qwen2.5-Math-1.5B-Instruct`, frozen NF4
 - OPD objective: TRL GKD, `lmbda=1.0`, `beta=0.5`, 50 steps / 200 rollouts
-- Selected OPD adapter: `outputs/opd/qwen25_math_15b_gkd_pilot50/checkpoint-30`
+- Reported OPD checkpoints: step 30 from
+  `outputs/opd/qwen25_math_15b_gkd_{pilot50,seed43,seed44}`
 
 The v7 dataset removes 23,716 `<<expression=result>>` calculator annotations
 while preserving every final `####` answer. This recovers validation accuracy
@@ -123,6 +127,12 @@ python scripts/train_opd_gkd.py \
 The script exactly reproduces and excludes the fixed 374-example SFT validation
 split. Model checkpoints stay in the ignored `outputs/` directory; tracked OPD
 metrics and paired analyses are under `results/opd/`.
+
+Seeds 42/43/44 use identical hyperparameters and a fixed checkpoint-30. The
+current `--seed` controls both selection of the 256 training prompts and trainer
+randomness, so the reported variation is end-to-end run variability rather than
+fixed-data training-seed variability. The aggregate artifact is
+[`opd_ckpt30_multiseed_summary.json`](results/opd/final/opd_ckpt30_multiseed_summary.json).
 
 The official test set must not be used for checkpoint or hyperparameter
 selection. Token-level validation loss is also not a substitute for free-generation
