@@ -7,3 +7,6 @@
   中文 OPD/GKD 报告，包含教师资格检查、8 GiB 双模型方案、checkpoint 选择、
   validation/test 配对结果与统计解释。
 - [`OPD_EXPERIMENT_REPORT.md`](OPD_EXPERIMENT_REPORT.md)：English OPD/GKD report.
+- [`SVAMP_EXPERIMENT_REPORT_zh.md`](SVAMP_EXPERIMENT_REPORT_zh.md)：
+  独立 SVAMP 泛化评测阶段性报告，包含固定协议、Base/SFT/OPD seed 42/43 结果、
+  配对检验与 seed 44 待办。

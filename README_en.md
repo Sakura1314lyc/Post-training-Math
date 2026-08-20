@@ -9,7 +9,9 @@ This repository implements both SFT and On-Policy Distillation (OPD/GKD):
 
 Detailed reports: [SFT (Chinese)](reports/SFT_EXPERIMENT_REPORT_zh.md),
 [OPD (English)](reports/OPD_EXPERIMENT_REPORT.md), and
-[OPD (Chinese)](reports/OPD_EXPERIMENT_REPORT_zh.md).
+[OPD (Chinese)](reports/OPD_EXPERIMENT_REPORT_zh.md). The interim independent
+generalization analysis is documented in the
+[SVAMP report (Chinese)](reports/SVAMP_EXPERIMENT_REPORT_zh.md).
 
 ## Final result
 
@@ -63,6 +65,7 @@ scripts/                    # Data preparation and evaluation utilities
 results/dev/                # Validation and diagnostic artifacts
 results/final/              # Final official-test artifacts
 results/opd/                # Teacher, OPD validation/test, and paired analyses
+results/svamp/              # Independent SVAMP generalization protocol and results
 results/archive/            # Historical continued-SFT experiments
 reports/                    # Experiment reports
 tests/                      # Unit tests
@@ -133,6 +136,54 @@ current `--seed` controls both selection of the 256 training prompts and trainer
 randomness, so the reported variation is end-to-end run variability rather than
 fixed-data training-seed variability. The aggregate artifact is
 [`opd_ckpt30_multiseed_summary.json`](results/opd/final/opd_ckpt30_multiseed_summary.json).
+
+### Independent SVAMP evaluation
+
+To avoid further iteration on the GSM8K test set, the evaluator also supports all
+1,000 examples from
+[`MU-NLPC/Calc-svamp`](https://huggingface.co/datasets/MU-NLPC/Calc-svamp/blob/main/README.md)
+under `default/test`. The
+[original SVAMP release](https://github.com/arkilpatel/SVAMP/blob/main/SVAMP.json)
+does not define an official train/test split, so the full collection is treated as
+a test set, following the Calc-SVAMP data card. Calc-SVAMP also corrects one
+inconsistent equation/answer pair from the original data.
+
+Run a 10-example plumbing smoke test first, without using its accuracy for model
+selection:
+
+```bash
+python3 scripts/eval_sft_adapter.py \
+  --benchmark svamp \
+  --base-model Qwen/Qwen2.5-Math-1.5B \
+  --eval-split test \
+  --num-samples 10 \
+  --max-new-tokens 1024 \
+  --no-stop-after-answer-line \
+  --output results/svamp/smoke/svamp_base_15b_smoke10_v1.json
+```
+
+After the smoke test, evaluate Raw Base, SFT v7, and OPD seeds 42/43/44 exactly
+once with the fixed protocol in
+[`results/svamp/README.md`](results/svamp/README.md). These results use evaluator
+version `svamp_numeric_v1` and must not be used for checkpoint or hyperparameter
+selection.
+
+As of 2026-08-20, Base, SFT, and OPD seeds 42/43 are complete; seed 44 remains
+pending:
+
+| SVAMP test (1,000 examples) | Raw Base | SFT v7 | OPD seed 42 | OPD seed 43 |
+|---|---:|---:|---:|---:|
+| Numerical accuracy | **85.20%** | 81.50% | 82.30% | 81.70% |
+| Format compliance | 0.00% | **98.80%** | 98.70% | 98.40% |
+| Hit token limit | 7.00% | **0.90%** | 1.00% | 1.30% |
+| Evaluation time | 109m 21s | **27m 32s** | 29m 23s | 34m 38s |
+
+The paired Base-to-SFT change is −3.70 pp (`p=0.00761528`). OPD seeds 42 and
+43 recover +0.80 and +0.20 pp over SFT, with `p=0.322236` and `p=0.891923`.
+This interim evidence indicates a significant cross-dataset numerical regression
+from SFT despite major format, termination, and speed improvements. The first two
+OPD runs provide only small, non-significant recoveries; the three-run conclusion
+must wait for seed 44.
 
 The official test set must not be used for checkpoint or hyperparameter
 selection. Token-level validation loss is also not a substitute for free-generation

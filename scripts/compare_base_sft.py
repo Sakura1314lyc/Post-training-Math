@@ -1,4 +1,4 @@
-"""Paired comparison of base and SFT GSM8K evaluation files."""
+"""Paired comparison of two numeric benchmark evaluation files."""
 
 from __future__ import annotations
 
@@ -8,7 +8,11 @@ import statistics
 from collections import Counter
 from pathlib import Path
 
-from evaluation_utils import EVALUATION_VERSION, exact_mcnemar_p_value, follows_answer_format
+from evaluation_utils import (
+    SUPPORTED_EVALUATION_VERSIONS,
+    exact_mcnemar_p_value,
+    follows_answer_format,
+)
 
 
 TRANSITION_KEYS = (
@@ -63,7 +67,9 @@ def response_stats(results: list[dict]) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Compare paired base and SFT GSM8K results.")
+    parser = argparse.ArgumentParser(
+        description="Compare paired numeric benchmark results."
+    )
     parser.add_argument("--base", type=Path, required=True)
     parser.add_argument("--sft", type=Path, required=True)
     parser.add_argument(
@@ -86,10 +92,10 @@ def main() -> None:
             "Base and SFT were scored by different evaluators: "
             f"base={base_version!r}, sft={sft_version!r}"
         )
-    if base_version != EVALUATION_VERSION:
+    if base_version not in SUPPORTED_EVALUATION_VERSIONS:
         print(
-            f"Warning: comparing legacy evaluator {base_version!r}; "
-            f"canonical version is {EVALUATION_VERSION!r}."
+            f"Warning: comparing unrecognized evaluator version {base_version!r}; "
+            "verify that both files use the intended scoring protocol."
         )
 
     base_results = base_payload["results"]
@@ -161,7 +167,7 @@ def main() -> None:
         "sft_response_stats": response_stats(sft_results),
     }
     output = {
-        "evaluation_version_expected": EVALUATION_VERSION,
+        "evaluation_version_expected": base_version,
         "base_source": str(args.base),
         "sft_source": str(args.sft),
         "base_evaluation_version": base_version,

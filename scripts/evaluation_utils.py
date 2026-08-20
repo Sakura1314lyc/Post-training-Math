@@ -1,4 +1,4 @@
-"""Shared GSM8K answer extraction and scoring utilities."""
+"""Shared numeric answer extraction and scoring utilities."""
 
 from __future__ import annotations
 
@@ -8,6 +8,9 @@ from decimal import Decimal, DecimalException
 
 
 EVALUATION_VERSION = "gsm8k_numeric_v3"
+SUPPORTED_EVALUATION_VERSIONS = frozenset(
+    {EVALUATION_VERSION, "svamp_numeric_v1"}
+)
 
 SYSTEM_PROMPT = (
     "You are a helpful math assistant. "

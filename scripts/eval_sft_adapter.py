@@ -14,10 +14,15 @@ from transformers import (
     StoppingCriteriaList,
 )
 
+from evaluation_benchmarks import (
+    BENCHMARKS,
+    adapt_benchmark_sample,
+    get_benchmark_spec,
+    resolve_dataset_identity,
+    resolve_source_split,
+)
 from evaluation_utils import (
-    EVALUATION_VERSION,
     SYSTEM_PROMPT,
-    extract_ground_truth,
     follows_answer_format,
     has_completed_answer_line,
     score_response,
@@ -79,8 +84,8 @@ def resolve_terminators(tokenizer) -> list[int]:
     return terminators
 
 
-def load_evaluation_dataset(args: argparse.Namespace):
-    source_split = "train" if args.eval_split == "train_validation" else "test"
+def load_evaluation_dataset(args: argparse.Namespace, benchmark_spec):
+    source_split = resolve_source_split(benchmark_spec, args.eval_split)
     dataset = load_dataset(args.dataset_name, args.dataset_config, split=source_split)
     dataset = dataset.add_column("source_index", list(range(len(dataset))))
 
@@ -103,12 +108,26 @@ def load_evaluation_dataset(args: argparse.Namespace):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Evaluate a base or LoRA model on GSM8K.")
+    parser = argparse.ArgumentParser(
+        description="Evaluate a base or LoRA model on a numeric reasoning benchmark."
+    )
     parser.add_argument("--base-model", required=True)
     parser.add_argument("--adapter")
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--dataset-name", default="openai/gsm8k")
-    parser.add_argument("--dataset-config", default="main")
+    parser.add_argument(
+        "--benchmark",
+        choices=tuple(sorted(BENCHMARKS)),
+        default="gsm8k",
+        help="Benchmark adapter and dataset defaults (default: gsm8k).",
+    )
+    parser.add_argument(
+        "--dataset-name",
+        help="Override the benchmark's default Hugging Face dataset name.",
+    )
+    parser.add_argument(
+        "--dataset-config",
+        help="Override the benchmark's default Hugging Face dataset config.",
+    )
     parser.add_argument(
         "--eval-split",
         choices=("test", "train_validation"),
@@ -139,6 +158,16 @@ def main():
     parser.add_argument("--overwrite", action="store_true")
 
     args = parser.parse_args()
+    benchmark_spec = get_benchmark_spec(args.benchmark)
+    try:
+        resolve_source_split(benchmark_spec, args.eval_split)
+    except ValueError as error:
+        parser.error(str(error))
+    args.dataset_name, args.dataset_config = resolve_dataset_identity(
+        benchmark_spec,
+        args.dataset_name,
+        args.dataset_config,
+    )
     if args.num_samples is not None and args.num_samples <= 0:
         parser.error("--num-samples must be positive")
     if args.start_index < 0:
@@ -174,8 +203,11 @@ def main():
     model.eval()
 
     print("Loading evaluation data...")
-    dataset, source_split = load_evaluation_dataset(args)
-    print(f"Evaluation split: {args.eval_split}; samples: {len(dataset)}")
+    dataset, source_split = load_evaluation_dataset(args, benchmark_spec)
+    print(
+        f"Benchmark: {benchmark_spec.name}; evaluation split: {args.eval_split}; "
+        f"samples: {len(dataset)}"
+    )
 
     correct = 0
     strict_correct = 0
@@ -190,10 +222,16 @@ def main():
     results = []
 
     for idx, sample in enumerate(dataset):
-        question = sample["question"]
-        ground_truth = extract_ground_truth(sample["answer"])
-        if ground_truth is None:
-            raise ValueError(f"Cannot extract ground truth at source index {sample['source_index']}")
+        try:
+            question, ground_truth, sample_metadata = adapt_benchmark_sample(
+                sample,
+                benchmark_spec.name,
+            )
+        except ValueError as error:
+            raise ValueError(
+                f"Cannot adapt {benchmark_spec.name} sample at source index "
+                f"{sample['source_index']}: {error}"
+            ) from error
 
         messages = [
             {
@@ -265,27 +303,35 @@ def main():
         if args.show_responses:
             print(response)
 
-        results.append({
-            "source_index": sample["source_index"],
-            "question": question,
-            "response": response,
-            "ground_truth": ground_truth,
-            "num_generated_tokens": num_generated_tokens,
-            "hit_max_new_tokens": hit_max_new_tokens,
-            "termination_reason": termination_reason,
-            **score,
-            "format_compliant": compliant,
-        })
+        results.append(
+            {
+                "source_index": sample["source_index"],
+                "question": question,
+                "response": response,
+                "ground_truth": ground_truth,
+                "num_generated_tokens": num_generated_tokens,
+                "hit_max_new_tokens": hit_max_new_tokens,
+                "termination_reason": termination_reason,
+                **score,
+                "format_compliant": compliant,
+                **{
+                    key: value
+                    for key, value in sample_metadata.items()
+                    if value is not None
+                },
+            }
+        )
 
     accuracy = correct / len(dataset)
     strict_accuracy = strict_correct / len(dataset)
     format_rate = format_compliant / len(dataset)
     payload = {
         "schema_version": 2,
-        "evaluation_version": EVALUATION_VERSION,
+        "evaluation_version": benchmark_spec.evaluation_version,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "model": args.base_model,
         "adapter": args.adapter,
+        "benchmark": benchmark_spec.name,
         "dataset": {
             "name": args.dataset_name,
             "config": args.dataset_config,

@@ -8,7 +8,8 @@
 > Instruct 教师引导的 on-policy distillation → validation 选型 → 官方 test 配对评测
 
 完整分析见 [SFT 中文报告](reports/SFT_EXPERIMENT_REPORT_zh.md)和
-[OPD 中文报告](reports/OPD_EXPERIMENT_REPORT_zh.md)。
+[OPD 中文报告](reports/OPD_EXPERIMENT_REPORT_zh.md)。独立泛化评测见
+[SVAMP 阶段性报告](reports/SVAMP_EXPERIMENT_REPORT_zh.md)。
 
 ## 最终结果
 
@@ -59,6 +60,7 @@ scripts/                    # 数据准备、评测、重评分、配对分析
 results/dev/                # validation、smoke 与消融结果
 results/final/              # 最终官方 test 结果
 results/opd/                # 教师、OPD validation/test 与配对分析
+results/svamp/              # 独立 SVAMP 泛化评测协议与结果
 results/archive/            # 历史 continued-SFT 结果
 reports/                    # 完整实验报告
 tests/                      # 单元测试
@@ -184,7 +186,50 @@ seed 43/44 使用完全相同的超参数和固定 checkpoint-30。当前 `--see
 下的纯训练 seed 波动。三次汇总见
 [`opd_ckpt30_multiseed_summary.json`](results/opd/final/opd_ckpt30_multiseed_summary.json)。
 
-### 6. 配对分析
+### 6. 独立 SVAMP 泛化评测
+
+为避免继续围绕 GSM8K test 调整实验，额外使用
+[`MU-NLPC/Calc-svamp`](https://huggingface.co/datasets/MU-NLPC/Calc-svamp/blob/main/README.md)
+的 `default/test` 全部 1,000 题做一次固定协议评测。原始
+[`SVAMP`](https://github.com/arkilpatel/SVAMP/blob/main/SVAMP.json) 没有官方
+train/test 划分，因此这里遵循 Calc-SVAMP 数据卡，将完整集合视为 test；该版本还修正了
+原数据中一条方程与答案不一致的样本。
+
+先只运行 10 题 smoke，检查数据加载、输出格式和 EOS，不根据结果修改 checkpoint、prompt
+或生成参数：
+
+```bash
+python3 scripts/eval_sft_adapter.py \
+  --benchmark svamp \
+  --base-model Qwen/Qwen2.5-Math-1.5B \
+  --eval-split test \
+  --num-samples 10 \
+  --max-new-tokens 1024 \
+  --no-stop-after-answer-line \
+  --output results/svamp/smoke/svamp_base_15b_smoke10_v1.json
+```
+
+smoke 正常后，用同一协议依次评测 Raw Base、SFT v7 和 OPD seed 42/43/44；正式命令与
+文件命名见 [`results/svamp/README.md`](results/svamp/README.md)。所有五个运行固定使用
+贪心解码、原生 EOS 和 1,024 token 上限，SVAMP 结果只用于最终泛化报告，不再用于选
+checkpoint 或调参。SVAMP 结果的评分器版本为 `svamp_numeric_v1`。
+
+截至 2026-08-20，已完成 Base、SFT 和 OPD seed 42/43，seed 44 留待下次：
+
+| SVAMP test（1,000 题） | Raw Base | SFT v7 | OPD seed 42 | OPD seed 43 |
+|---|---:|---:|---:|---:|
+| 数值准确率 | **85.20%** | 81.50% | 82.30% | 81.70% |
+| 格式遵循率 | 0.00% | **98.80%** | 98.70% | 98.40% |
+| 达到 token 上限 | 7.00% | **0.90%** | 1.00% | 1.30% |
+| 全量评测时间 | 109m 21s | **27m 32s** | 29m 23s | 34m 38s |
+
+Base→SFT 的差值为 −3.70 pp，配对 McNemar `p=0.00761528`；SFT→OPD seed
+42/43 分别为 +0.80/+0.20 pp，`p=0.322236/0.891923`。因此阶段性证据表明 SFT 的
+跨数据集数值准确率下降，同时格式、终止和速度明显改善；前两个 OPD 运行只有小幅且不显著
+的恢复。完整分析见
+[`SVAMP_EXPERIMENT_REPORT_zh.md`](reports/SVAMP_EXPERIMENT_REPORT_zh.md)。
+
+### 7. 配对分析
 
 ```bash
 python3 scripts/compare_base_sft.py \

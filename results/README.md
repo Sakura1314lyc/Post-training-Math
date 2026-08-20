@@ -10,6 +10,7 @@ dev/ablations/  # v4-v6 原生生成失败诊断
 dev/legacy_v1_v2/ # v1/v2、早期 Base、smoke 与 debug 结果
 final/          # 官方 GSM8K test 最终结果
 opd/            # 教师、OPD checkpoint 选择、validation 与最终 test
+svamp/          # 独立 SVAMP 泛化评测协议与结果
 archive/        # 历史 Instruct 与 0.5B 实验
 ```
 
@@ -53,6 +54,16 @@ checkpoint-30，并完成 seed 42/43/44 三次端到端运行：
 
 `native10`、`smoke20` 与 `slice20_50` 文件只用于检查输出格式、EOS 和明显退化，
 不能代替完整 validation 或 test 结果。
+
+## SVAMP 泛化评测
+
+`svamp/` 使用独立的 `svamp_numeric_v1` 协议评测完整 1,000 题 Calc-SVAMP test。
+该集合不参与训练、checkpoint 选择或超参数调整；固定命令和阶段性结果表见
+[`svamp/README.md`](svamp/README.md)。
+
+截至 2026-08-20 已完成 Base、SFT 和 OPD seed 42/43。Base 为 85.20%，SFT 为
+81.50%（配对 `p=0.00761528`）；OPD seed 42/43 为 82.30%/81.70%，相对 SFT
+的配对 `p` 为 0.322236/0.891923。seed 44 尚未运行，因此暂不报告 OPD 三次汇总。
 
 ## 结果解释规则
 
