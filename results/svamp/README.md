@@ -93,16 +93,16 @@ python3 scripts/eval_sft_adapter.py \
   --output results/svamp/final/svamp_opd_seed44_ckpt30_v1.json
 ```
 
-## 阶段性结果（2026-08-20）
+## 最终结果（2026-08-21）
 
-| SVAMP test（1,000 题） | Raw Base | SFT v7 | OPD seed 42 | OPD seed 43 | OPD seed 44 |
-|---|---:|---:|---:|---:|---:|
-| 数值准确率 | **85.20%** | 81.50% | 82.30% | 81.70% | 待运行 |
-| 严格 `####` 准确率 | 0.00% | 81.40% | 82.10% | 81.60% | 待运行 |
-| 格式遵循率 | 0.00% | **98.80%** | 98.70% | 98.40% | 待运行 |
-| 达到 token 上限 | 7.00% | **0.90%** | 1.00% | 1.30% | 待运行 |
-| 平均生成 token | 290.81 | **55.07** | 59.04 | 61.67 | 待运行 |
-| 全量评测时间 | 109m 21s | **27m 32s** | 29m 23s | 34m 38s | 待运行 |
+| SVAMP test（1,000 题） | Raw Base | SFT v7 | OPD seed 42 | OPD seed 43 | OPD seed 44 | OPD 均值 ± SD |
+|---|---:|---:|---:|---:|---:|---:|
+| 数值准确率 | **85.20%** | 81.50% | 82.30% | 81.70% | 81.80% | 81.93% ± 0.32 |
+| 严格 `####` 准确率 | 0.00% | 81.40% | 82.10% | 81.60% | 81.70% | 81.80% ± 0.26 |
+| 格式遵循率 | 0.00% | **98.80%** | 98.70% | 98.40% | 98.30% | 98.47% ± 0.21 |
+| 达到 token 上限 | 7.00% | **0.90%** | 1.00% | 1.30% | 1.40% | 1.23% ± 0.21 |
+| 平均生成 token | 290.81 | **55.07** | 59.04 | 61.67 | 63.23 | 61.32 ± 2.12 |
+| 全量评测时间 | 109m 21s | **27m 32s** | 29m 23s | 34m 38s | 31m 28s | 31m 50s ± 2m 39s |
 
 同题配对结果：
 
@@ -110,10 +110,11 @@ python3 scripts/eval_sft_adapter.py \
   `p=0.00761528`。
 - SFT→OPD seed 42：SFT-only 21、OPD-only 29，差值 +0.80 pp，`p=0.322236`。
 - SFT→OPD seed 43：SFT-only 26、OPD-only 28，差值 +0.20 pp，`p=0.891923`。
+- SFT→OPD seed 44：SFT-only 28、OPD-only 31，差值 +0.30 pp，`p=0.794844`。
 
-当前结论只能视为阶段性结果：SFT 在独立 SVAMP 上显著降低数值准确率，但大幅改善格式、
-终止和效率；前两个 OPD 运行相对 SFT 均为正向点估计，但幅度小且没有统计显著性，仍需
-完成预注册的 seed 44 后才能汇总三次均值与标准差。详细分析见
+最终结论：SFT 在独立 SVAMP 上显著降低数值准确率，但大幅改善格式、终止和效率；三个
+OPD 运行相对 SFT 均为正向点估计，平均恢复 0.43 pp，但每次配对差异都不显著，而且 OPD
+均值仍比 Raw Base 低 3.27 pp。详细分析见
 [`../../reports/SVAMP_EXPERIMENT_REPORT_zh.md`](../../reports/SVAMP_EXPERIMENT_REPORT_zh.md)。
 
 配对分析文件：
@@ -121,3 +122,5 @@ python3 scripts/eval_sft_adapter.py \
 - `final/svamp_base_sft_v7_transition_analysis_v1.json`
 - `final/svamp_sft_v7_opd_seed42_transition_analysis_v1.json`
 - `final/svamp_sft_v7_opd_seed43_transition_analysis_v1.json`
+- `final/svamp_sft_v7_opd_seed44_transition_analysis_v1.json`
+- `final/svamp_opd_multiseed_summary_v1.json`

@@ -9,7 +9,7 @@ This repository implements both SFT and On-Policy Distillation (OPD/GKD):
 
 Detailed reports: [SFT (Chinese)](reports/SFT_EXPERIMENT_REPORT_zh.md),
 [OPD (English)](reports/OPD_EXPERIMENT_REPORT.md), and
-[OPD (Chinese)](reports/OPD_EXPERIMENT_REPORT_zh.md). The interim independent
+[OPD (Chinese)](reports/OPD_EXPERIMENT_REPORT_zh.md). The independent
 generalization analysis is documented in the
 [SVAMP report (Chinese)](reports/SVAMP_EXPERIMENT_REPORT_zh.md).
 
@@ -168,22 +168,22 @@ once with the fixed protocol in
 version `svamp_numeric_v1` and must not be used for checkpoint or hyperparameter
 selection.
 
-As of 2026-08-20, Base, SFT, and OPD seeds 42/43 are complete; seed 44 remains
-pending:
+As of 2026-08-21, all five runs in the fixed protocol are complete:
 
-| SVAMP test (1,000 examples) | Raw Base | SFT v7 | OPD seed 42 | OPD seed 43 |
-|---|---:|---:|---:|---:|
-| Numerical accuracy | **85.20%** | 81.50% | 82.30% | 81.70% |
-| Format compliance | 0.00% | **98.80%** | 98.70% | 98.40% |
-| Hit token limit | 7.00% | **0.90%** | 1.00% | 1.30% |
-| Evaluation time | 109m 21s | **27m 32s** | 29m 23s | 34m 38s |
+| SVAMP test (1,000 examples) | Raw Base | SFT v7 | OPD seeds 42/43/44 mean ± SD |
+|---|---:|---:|---:|
+| Numerical accuracy | **85.20%** | 81.50% | 81.93% ± 0.32 |
+| Format compliance | 0.00% | **98.80%** | 98.47% ± 0.21 |
+| Hit token limit | 7.00% | **0.90%** | 1.23% ± 0.21 |
+| Mean generated tokens | 290.81 | **55.07** | 61.32 ± 2.12 |
 
-The paired Base-to-SFT change is −3.70 pp (`p=0.00761528`). OPD seeds 42 and
-43 recover +0.80 and +0.20 pp over SFT, with `p=0.322236` and `p=0.891923`.
-This interim evidence indicates a significant cross-dataset numerical regression
-from SFT despite major format, termination, and speed improvements. The first two
-OPD runs provide only small, non-significant recoveries; the three-run conclusion
-must wait for seed 44.
+The paired Base-to-SFT change is −3.70 pp (`p=0.00761528`). OPD seeds 42, 43,
+and 44 recover +0.80, +0.20, and +0.30 pp over SFT, with `p=0.322236`,
+`p=0.891923`, and `p=0.794844`. SFT therefore shows a significant cross-dataset
+numerical regression despite major format, termination, and speed improvements.
+OPD is directionally consistent across all three runs but recovers only 0.43 pp
+on average, with no individually significant paired result, and remains below Raw
+Base.
 
 The official test set must not be used for checkpoint or hyperparameter
 selection. Token-level validation loss is also not a substitute for free-generation

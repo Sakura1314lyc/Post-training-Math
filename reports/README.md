@@ -8,5 +8,5 @@
   validation/test 配对结果与统计解释。
 - [`OPD_EXPERIMENT_REPORT.md`](OPD_EXPERIMENT_REPORT.md)：English OPD/GKD report.
 - [`SVAMP_EXPERIMENT_REPORT_zh.md`](SVAMP_EXPERIMENT_REPORT_zh.md)：
-  独立 SVAMP 泛化评测阶段性报告，包含固定协议、Base/SFT/OPD seed 42/43 结果、
-  配对检验与 seed 44 待办。
+  独立 SVAMP 泛化评测报告，包含固定协议、Base/SFT/OPD 三随机种子结果、配对检验与
+  泛化结论。

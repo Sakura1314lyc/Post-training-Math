@@ -9,7 +9,7 @@
 
 完整分析见 [SFT 中文报告](reports/SFT_EXPERIMENT_REPORT_zh.md)和
 [OPD 中文报告](reports/OPD_EXPERIMENT_REPORT_zh.md)。独立泛化评测见
-[SVAMP 阶段性报告](reports/SVAMP_EXPERIMENT_REPORT_zh.md)。
+[SVAMP 泛化报告](reports/SVAMP_EXPERIMENT_REPORT_zh.md)。
 
 ## 最终结果
 
@@ -214,19 +214,19 @@ smoke 正常后，用同一协议依次评测 Raw Base、SFT v7 和 OPD seed 42/
 贪心解码、原生 EOS 和 1,024 token 上限，SVAMP 结果只用于最终泛化报告，不再用于选
 checkpoint 或调参。SVAMP 结果的评分器版本为 `svamp_numeric_v1`。
 
-截至 2026-08-20，已完成 Base、SFT 和 OPD seed 42/43，seed 44 留待下次：
+截至 2026-08-21，固定协议中的五组评测已经全部完成：
 
-| SVAMP test（1,000 题） | Raw Base | SFT v7 | OPD seed 42 | OPD seed 43 |
-|---|---:|---:|---:|---:|
-| 数值准确率 | **85.20%** | 81.50% | 82.30% | 81.70% |
-| 格式遵循率 | 0.00% | **98.80%** | 98.70% | 98.40% |
-| 达到 token 上限 | 7.00% | **0.90%** | 1.00% | 1.30% |
-| 全量评测时间 | 109m 21s | **27m 32s** | 29m 23s | 34m 38s |
+| SVAMP test（1,000 题） | Raw Base | SFT v7 | OPD seed 42/43/44 均值 ± SD |
+|---|---:|---:|---:|
+| 数值准确率 | **85.20%** | 81.50% | 81.93% ± 0.32 |
+| 格式遵循率 | 0.00% | **98.80%** | 98.47% ± 0.21 |
+| 达到 token 上限 | 7.00% | **0.90%** | 1.23% ± 0.21 |
+| 平均生成 token | 290.81 | **55.07** | 61.32 ± 2.12 |
 
 Base→SFT 的差值为 −3.70 pp，配对 McNemar `p=0.00761528`；SFT→OPD seed
-42/43 分别为 +0.80/+0.20 pp，`p=0.322236/0.891923`。因此阶段性证据表明 SFT 的
-跨数据集数值准确率下降，同时格式、终止和速度明显改善；前两个 OPD 运行只有小幅且不显著
-的恢复。完整分析见
+42/43/44 分别为 +0.80/+0.20/+0.30 pp，`p=0.322236/0.891923/0.794844`。
+因此 SFT 的跨数据集数值准确率显著下降，同时格式、终止和速度明显改善；OPD 三次方向
+一致但只平均恢复 0.43 pp，均无显著性证据，且仍未恢复 Raw Base 水平。完整分析见
 [`SVAMP_EXPERIMENT_REPORT_zh.md`](reports/SVAMP_EXPERIMENT_REPORT_zh.md)。
 
 ### 7. 配对分析

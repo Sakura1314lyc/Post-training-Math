@@ -1,12 +1,12 @@
-# SVAMP 独立泛化评测报告（阶段性）
+# SVAMP 独立泛化评测报告
 
 ## 1. 目的与状态
 
 GSM8K 官方 test 已经用于最终 SFT/OPD 报告，不适合继续承担模型选择职责。本实验引入
 未参与训练和 checkpoint 选择的 SVAMP，检验 Raw Base、SFT v7 与 OPD 的跨数据集泛化。
 
-截至 2026-08-20，固定协议中的 Raw Base、SFT v7、OPD seed 42 和 seed 43 已完成；
-预定的 OPD seed 44 尚未运行。因此本文只给出阶段性结论，不汇报 OPD 三次均值与标准差。
+截至 2026-08-21，固定协议中的 Raw Base、SFT v7 和 OPD seed 42/43/44 已全部完成。
+OPD 汇总使用三次端到端运行的算术均值与样本标准差（SD）。
 
 ## 2. 数据与协议
 
@@ -24,17 +24,17 @@ GSM8K 官方 test 已经用于最终 SFT/OPD 报告，不适合继续承担模�
 - [Calc-SVAMP 数据卡](https://huggingface.co/datasets/MU-NLPC/Calc-svamp/blob/main/README.md)
 - [原始 SVAMP 数据](https://github.com/arkilpatel/SVAMP/blob/main/SVAMP.json)
 
-## 3. 阶段性结果
+## 3. 最终结果
 
-| SVAMP test（1,000 题） | Raw Base | SFT v7 | OPD seed 42 | OPD seed 43 |
-|---|---:|---:|---:|---:|
-| 数值准确率 | **85.20%** | 81.50% | 82.30% | 81.70% |
-| 严格 `####` 准确率 | 0.00% | 81.40% | 82.10% | 81.60% |
-| 格式遵循率 | 0.00% | **98.80%** | 98.70% | 98.40% |
-| 达到 1,024 token 上限 | 7.00% | **0.90%** | 1.00% | 1.30% |
-| 原生 EOS | 93.00% | **99.10%** | 99.00% | 98.70% |
-| 平均生成 token | 290.81 | **55.07** | 59.04 | 61.67 |
-| 全量评测时间 | 109m 21s | **27m 32s** | 29m 23s | 34m 38s |
+| SVAMP test（1,000 题） | Raw Base | SFT v7 | OPD seed 42 | OPD seed 43 | OPD seed 44 | OPD 均值 ± SD |
+|---|---:|---:|---:|---:|---:|---:|
+| 数值准确率 | **85.20%** | 81.50% | 82.30% | 81.70% | 81.80% | 81.93% ± 0.32 |
+| 严格 `####` 准确率 | 0.00% | 81.40% | 82.10% | 81.60% | 81.70% | 81.80% ± 0.26 |
+| 格式遵循率 | 0.00% | **98.80%** | 98.70% | 98.40% | 98.30% | 98.47% ± 0.21 |
+| 达到 1,024 token 上限 | 7.00% | **0.90%** | 1.00% | 1.30% | 1.40% | 1.23% ± 0.21 |
+| 原生 EOS | 93.00% | **99.10%** | 99.00% | 98.70% | 98.60% | 98.77% ± 0.21 |
+| 平均生成 token | 290.81 | **55.07** | 59.04 | 61.67 | 63.23 | 61.32 ± 2.12 |
+| 全量评测时间 | 109m 21s | **27m 32s** | 29m 23s | 34m 38s | 31m 28s | 31m 50s ± 2m 39s |
 
 ## 4. 同题配对分析
 
@@ -43,9 +43,12 @@ GSM8K 官方 test 已经用于最终 SFT/OPD 报告，不适合继续承担模�
 | Raw Base → SFT v7 | 110 | 73 | −3.70 pp | **0.00761528** |
 | SFT v7 → OPD seed 42 | 21 | 29 | +0.80 pp | 0.322236 |
 | SFT v7 → OPD seed 43 | 26 | 28 | +0.20 pp | 0.891923 |
+| SFT v7 → OPD seed 44 | 28 | 31 | +0.30 pp | 0.794844 |
 
 Base→SFT 的差异在当前配对检验下低于 0.05，说明下降并非只来自总分的小幅随机波动。
-两个 OPD 运行相对 SFT 都是正向点估计，但交换题目很少，且均无显著性证据。
+三个 OPD 运行相对 SFT 都是正向点估计，但交换题目很少，且每次均无显著性证据。由于
+三次运行的训练样本与训练随机性同时变化，这里分别报告三次配对检验，不把它们简单合并成
+一个伪重复的总体显著性检验。
 
 ## 5. 解释
 
@@ -53,18 +56,21 @@ SFT v7 在 GSM8K test 上基本保持 Raw Base 的数值准确率，但在独立
 3.70 pp。这暴露出 GSM8K 格式微调的跨数据集代价：模型输出更短、更稳定、几乎总能按
 `####` 格式结束，评测速度也约提升到 Base 的四倍，但数值泛化没有完全保持。
 
-OPD seed 42/43 分别恢复 0.80/0.20 pp，方向暂时一致，却不足以抵消 SFT 相对 Base 的
-2.90/3.50 pp 差距。现阶段不能声称 OPD 带来稳定的跨数据集能力提升。
+OPD seed 42/43/44 分别恢复 0.80/0.20/0.30 pp，三次方向一致，平均为
+`+0.43 pp`，样本 SD 为 `0.32 pp`。但每次配对检验都不显著，且 OPD 平均准确率
+81.93% 仍比 Raw Base 低 3.27 pp。因此可以说 OPD 出现了可复现的小幅正向点估计，不能
+声称它带来了统计上可靠或足以恢复 Base 水平的跨数据集能力提升。
 
 ## 6. 局限与下一步
 
-- OPD seed 44 尚未完成，不能提前计算或选择性报告三次运行均值。
 - SVAMP 原始发布没有官方划分；本文采用 Calc-SVAMP 的完整 test 约定，结果必须连同这一
   数据选择一起解释。
 - Base 的 7.00% 输出达到 token 上限；宽松数值评分可能仍能从截断回复中提取答案，因此
   必须同时报告截断率和严格准确率。
-- 下一次只需按既定命令完成 OPD seed 44，随后汇总三次均值、样本标准差和配对检验；不再
-  根据当前结果修改模型或协议。
+- 当前 `--seed` 同时控制 256 条 OPD 训练样本的抽取和训练随机性，因此三次 SD 表示端到端
+  运行波动，而不是固定训练数据下的纯随机种子方差。
+- 若继续研究，应建立新的 validation 或使用另一独立数据集设计改进；不能回头根据 SVAMP
+  test 结果选择现有 checkpoint 或调整当前报告协议。
 
 ## 7. 结果文件
 
@@ -72,6 +78,9 @@ OPD seed 42/43 分别恢复 0.80/0.20 pp，方向暂时一致，却不足以抵�
 - `results/svamp/final/svamp_sft_v7_15b_ckpt888_v1.json`
 - `results/svamp/final/svamp_opd_seed42_ckpt30_v1.json`
 - `results/svamp/final/svamp_opd_seed43_ckpt30_v1.json`
+- `results/svamp/final/svamp_opd_seed44_ckpt30_v1.json`
 - `results/svamp/final/svamp_base_sft_v7_transition_analysis_v1.json`
 - `results/svamp/final/svamp_sft_v7_opd_seed42_transition_analysis_v1.json`
 - `results/svamp/final/svamp_sft_v7_opd_seed43_transition_analysis_v1.json`
+- `results/svamp/final/svamp_sft_v7_opd_seed44_transition_analysis_v1.json`
+- `results/svamp/final/svamp_opd_multiseed_summary_v1.json`
