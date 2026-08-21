@@ -22,6 +22,13 @@ TRANSITION_KEYS = (
     "base_wrong_sft_wrong",
 )
 
+PROTOCOL_KEYS = (
+    "benchmark",
+    "dataset",
+    "prompt",
+    "generation",
+)
+
 
 def load_payload(path: Path) -> dict:
     with path.open("r", encoding="utf-8") as f:
@@ -29,6 +36,28 @@ def load_payload(path: Path) -> dict:
     if not isinstance(payload.get("results"), list):
         raise ValueError(f"{path} does not contain a results list")
     return payload
+
+
+def validate_comparison_protocol(base_payload: dict, sft_payload: dict) -> None:
+    """Reject paired comparisons produced by different evaluation protocols."""
+    base_version = base_payload.get("evaluation_version")
+    sft_version = sft_payload.get("evaluation_version")
+    if base_version != sft_version:
+        raise ValueError(
+            "Base and SFT were scored by different evaluators: "
+            f"base={base_version!r}, sft={sft_version!r}"
+        )
+
+    mismatched = [
+        key
+        for key in PROTOCOL_KEYS
+        if base_payload.get(key) != sft_payload.get(key)
+    ]
+    if mismatched:
+        raise ValueError(
+            "Base and SFT use different evaluation protocols for: "
+            + ", ".join(mismatched)
+        )
 
 
 def index_by_question(results: list[dict], label: str) -> dict[str, dict]:
@@ -85,13 +114,9 @@ def main() -> None:
 
     base_payload = load_payload(args.base)
     sft_payload = load_payload(args.sft)
+    validate_comparison_protocol(base_payload, sft_payload)
     base_version = base_payload.get("evaluation_version")
     sft_version = sft_payload.get("evaluation_version")
-    if base_version != sft_version:
-        raise ValueError(
-            "Base and SFT were scored by different evaluators: "
-            f"base={base_version!r}, sft={sft_version!r}"
-        )
     if base_version not in SUPPORTED_EVALUATION_VERSIONS:
         print(
             f"Warning: comparing unrecognized evaluator version {base_version!r}; "
@@ -172,6 +197,9 @@ def main() -> None:
         "sft_source": str(args.sft),
         "base_evaluation_version": base_version,
         "sft_evaluation_version": sft_version,
+        "comparison_protocol": {
+            key: base_payload.get(key) for key in PROTOCOL_KEYS
+        },
         "summary": summary,
         "details": details,
     }

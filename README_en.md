@@ -2,7 +2,8 @@
 
 [简体中文](README.md) | [English](README_en.md)
 
-This repository implements both SFT and On-Policy Distillation (OPD/GKD):
+This repository implements SFT and On-Policy Distillation (OPD/GKD), with a
+three-seed GRPO experiment currently in progress:
 
 > `Qwen/Qwen2.5-Math-1.5B` (raw math base) → GSM8K LoRA-SFT → on-policy
 > distillation with an Instruct teacher → held-out selection → official test
@@ -11,7 +12,9 @@ Detailed reports: [SFT (Chinese)](reports/SFT_EXPERIMENT_REPORT_zh.md),
 [OPD (English)](reports/OPD_EXPERIMENT_REPORT.md), and
 [OPD (Chinese)](reports/OPD_EXPERIMENT_REPORT_zh.md). The independent
 generalization analysis is documented in the
-[SVAMP report (Chinese)](reports/SVAMP_EXPERIMENT_REPORT_zh.md).
+[SVAMP report (Chinese)](reports/SVAMP_EXPERIMENT_REPORT_zh.md). Current GRPO
+status is documented in the
+[GRPO stage report (Chinese)](reports/GRPO_EXPERIMENT_REPORT_zh.md).
 
 ## Final result
 
@@ -50,6 +53,8 @@ truncation, and response length.
 - OPD objective: TRL GKD, `lmbda=1.0`, `beta=0.5`, 50 steps / 200 rollouts
 - Reported OPD checkpoints: step 30 from
   `outputs/opd/qwen25_math_15b_gkd_{pilot50,seed43,seed44}`
+- GRPO pilot: native TRL GRPO, numerical/format reward weights 1.0/0.1,
+  `beta=0`, 30 steps / 120 rollouts, fixed checkpoint-30 for seeds 42/43/44
 
 The v7 dataset removes 23,716 `<<expression=result>>` calculator annotations
 while preserving every final `####` answer. This recovers validation accuracy
@@ -66,6 +71,7 @@ results/dev/                # Validation and diagnostic artifacts
 results/final/              # Final official-test artifacts
 results/opd/                # Teacher, OPD validation/test, and paired analyses
 results/svamp/              # Independent SVAMP generalization protocol and results
+results/grpo/               # GRPO pilot, stage summary, and official-evaluation plan
 results/archive/            # Historical continued-SFT experiments
 reports/                    # Experiment reports
 tests/                      # Unit tests
@@ -188,6 +194,50 @@ Base.
 The official test set must not be used for checkpoint or hyperparameter
 selection. Token-level validation loss is also not a substitute for free-generation
 mathematical accuracy.
+
+### GRPO pilot
+
+The current LLaMA-Factory checkout does not expose a GRPO training stage, so
+[`train_grpo.py`](scripts/train_grpo.py) uses native TRL 0.24. It continues the
+SFT v7 adapter, reproduces and excludes the fixed 374-example validation split,
+and combines exact numerical correctness with a smaller strict-format reward.
+The 8 GiB smoke protocol uses native Transformers generation, four completions,
+and a 128-token completion limit:
+
+```bash
+python3 scripts/train_grpo.py \
+  --output-dir outputs/grpo/qwen25_math_15b_grpo_smoke \
+  --num-samples 8 \
+  --max-steps 1 \
+  --num-generations 4 \
+  --gradient-accumulation-steps 4 \
+  --max-prompt-length 512 \
+  --max-completion-length 128
+```
+
+This continued-adapter pilot fixes `beta=0`. With a nonzero KL coefficient,
+TRL would disable the existing adapter and incorrectly use Raw Base rather than
+the initial SFT policy as its PEFT reference.
+
+The smoke run completed successfully in 7.49 seconds with 3.33 GiB peak allocated
+memory, finite rewards and metrics, and a verified LoRA parameter update. Seeds
+42/43/44 then completed 30 steps / 120 rollouts each in roughly 137–141 seconds.
+Their fixed checkpoint-30 results under the preliminary 512-token validation
+protocol are:
+
+| GRPO pilot validation (374 examples) | seed42 | seed43 | seed44 | 3-run mean ± SD |
+|---|---:|---:|---:|---:|
+| Numerical accuracy | 86.10% | 85.56% | 85.03% | 85.56% ± 0.53 |
+| Strict accuracy | 85.83% | 85.56% | 85.03% | 85.47% ± 0.41 |
+| Format compliance | 98.93% | 99.20% | 98.93% | 99.02% ± 0.15 |
+
+The seed42 pilot test score is 953/1319 (72.25%). These GRPO evaluations used a
+512-token limit with answer-line stopping, whereas the official SFT/OPD protocol
+uses 1,024 tokens and native EOS. They are therefore isolated under
+`results/grpo/pilot/` and must not be presented as final matched-protocol gains.
+All three validation and test runs will be repeated under the official protocol;
+see [`results/grpo/README.md`](results/grpo/README.md) for the fixed commands and
+current status.
 
 ## Tests
 

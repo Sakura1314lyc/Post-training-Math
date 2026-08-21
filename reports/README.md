@@ -10,3 +10,6 @@
 - [`SVAMP_EXPERIMENT_REPORT_zh.md`](SVAMP_EXPERIMENT_REPORT_zh.md)：
   独立 SVAMP 泛化评测报告，包含固定协议、Base/SFT/OPD 三随机种子结果、配对检验与
   泛化结论。
+- [`GRPO_EXPERIMENT_REPORT_zh.md`](GRPO_EXPERIMENT_REPORT_zh.md)：
+  GRPO 阶段报告，包含原生 TRL 实现、8 GiB smoke、三随机种子训练与 pilot 评测；正式
+  1,024-token 同协议结果尚待完成。

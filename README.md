@@ -2,14 +2,16 @@
 
 [简体中文](README.md) | [English](README_en.md)
 
-本项目完成了课程代码实战中的 SFT 与 On-Policy Distillation（OPD/GKD）：
+本项目完成了课程代码实战中的 SFT 与 On-Policy Distillation（OPD/GKD），并正在进行
+GRPO 三随机种子实验：
 
 > `Qwen/Qwen2.5-Math-1.5B`（Raw Math Base）→ GSM8K LoRA-SFT →
 > Instruct 教师引导的 on-policy distillation → validation 选型 → 官方 test 配对评测
 
 完整分析见 [SFT 中文报告](reports/SFT_EXPERIMENT_REPORT_zh.md)和
 [OPD 中文报告](reports/OPD_EXPERIMENT_REPORT_zh.md)。独立泛化评测见
-[SVAMP 泛化报告](reports/SVAMP_EXPERIMENT_REPORT_zh.md)。
+[SVAMP 泛化报告](reports/SVAMP_EXPERIMENT_REPORT_zh.md)，GRPO 当前进度见
+[GRPO 阶段报告](reports/GRPO_EXPERIMENT_REPORT_zh.md)。
 
 ## 最终结果
 
@@ -44,6 +46,8 @@ validation 也都低于 SFT。因此可靠结论是：SFT 明显改善格式与�
 - OPD：TRL GKD，`lmbda=1.0`、`beta=0.5`，50 optimizer steps / 200 rollouts
 - OPD 报告 checkpoint：三个运行均固定使用 step 30，位于
   `outputs/opd/qwen25_math_15b_gkd_{pilot50,seed43,seed44}/checkpoint-30`
+- GRPO pilot：TRL GRPO，数值/格式奖励权重 1.0/0.1，`beta=0`，30 steps /
+  120 rollouts；seed 42/43/44 均固定 checkpoint-30
 
 v7 数据删除了 GSM8K 答案中的 23,716 个 `<<expression=result>>` 计算器标注，
 同时逐条验证 `####` 最终答案不变。相比使用原始标注的 v3，v7 在 validation 上
@@ -61,6 +65,7 @@ results/dev/                # validation、smoke 与消融结果
 results/final/              # 最终官方 test 结果
 results/opd/                # 教师、OPD validation/test 与配对分析
 results/svamp/              # 独立 SVAMP 泛化评测协议与结果
+results/grpo/               # GRPO pilot、阶段汇总与正式评测计划
 results/archive/            # 历史 continued-SFT 结果
 reports/                    # 完整实验报告
 tests/                      # 单元测试
@@ -237,6 +242,46 @@ python3 scripts/compare_base_sft.py \
   --sft results/final/test_gsm8k_sft_v7_15b_ckpt888_native_v3.json \
   --output results/final/test_base_sft_v7_ckpt888_transition_analysis.json
 ```
+
+### 8. GRPO Pilot
+
+当前 LLaMA-Factory checkout 没有 GRPO 训练入口，因此使用原生 TRL 0.24 脚本
+[`train_grpo.py`](scripts/train_grpo.py)。脚本从 SFT v7 adapter 继续训练，复现并排除固定
+374 题 validation，以数值正确性为主奖励、严格 `####` 格式为辅助奖励。它使用
+Transformers 原生生成而不是 vLLM，并包含 TRL 0.24 与本地 Transformers 5.x 的可选依赖
+探测兼容层。
+
+8 GiB GPU 首先只运行 1 optimizer step：
+
+```bash
+python3 scripts/train_grpo.py \
+  --output-dir outputs/grpo/qwen25_math_15b_grpo_smoke \
+  --num-samples 8 \
+  --max-steps 1 \
+  --num-generations 4 \
+  --gradient-accumulation-steps 4 \
+  --max-prompt-length 512 \
+  --max-completion-length 128
+```
+
+当前实现固定 `beta=0`。原因是直接继续训练现有 PEFT adapter 时，TRL 禁用 adapter 得到
+的是 Raw Base，而不是初始 SFT policy；使用非零 KL 会引用错误的策略。
+
+smoke 已成功完成：7.49 秒训练、峰值分配显存 3.33 GiB、奖励和指标有限、LoRA 参数确实
+更新。随后 seed 42/43/44 均完成 30 steps / 120 rollouts，单次约 137–141 秒。固定
+checkpoint-30 的 512-token pilot validation 如下：
+
+| GRPO pilot validation（374 题） | seed42 | seed43 | seed44 | 三次均值 ± SD |
+|---|---:|---:|---:|---:|
+| 数值准确率 | 86.10% | 85.56% | 85.03% | 85.56% ± 0.53 |
+| 严格准确率 | 85.83% | 85.56% | 85.03% | 85.47% ± 0.41 |
+| 格式遵循率 | 98.93% | 99.20% | 98.93% | 99.02% ± 0.15 |
+
+seed42 pilot test 为 953/1319（72.25%）。但这些 GRPO 结果使用 512-token 上限和答案行
+提前停止，而正式 SFT/OPD 使用 1,024-token 上限与原生 EOS，因此目前不能当作最终同协议
+提升。结果已隔离到 `results/grpo/pilot/`；下一实验日将三个 seed 的 validation/test
+全部按正式协议重跑。完整状态和固定命令见
+[`results/grpo/README.md`](results/grpo/README.md)。
 
 ## 评测指标
 
