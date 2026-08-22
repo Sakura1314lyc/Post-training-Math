@@ -2,27 +2,27 @@
 
 [简体中文](README.md) | [English](README_en.md)
 
-本项目完成了课程代码实战中的 SFT 与 On-Policy Distillation（OPD/GKD），并正在进行
-GRPO 三随机种子实验：
+本项目完成了课程代码实战中的 SFT、On-Policy Distillation（OPD/GKD）与 GRPO
+三随机种子实验：
 
 > `Qwen/Qwen2.5-Math-1.5B`（Raw Math Base）→ GSM8K LoRA-SFT →
-> Instruct 教师引导的 on-policy distillation → validation 选型 → 官方 test 配对评测
+> Instruct 教师引导的 on-policy distillation / GRPO → validation 选型 →
+> 官方 test 配对评测 → SVAMP 独立泛化评测
 
 完整分析见 [SFT 中文报告](reports/SFT_EXPERIMENT_REPORT_zh.md)和
 [OPD 中文报告](reports/OPD_EXPERIMENT_REPORT_zh.md)。独立泛化评测见
-[SVAMP 泛化报告](reports/SVAMP_EXPERIMENT_REPORT_zh.md)，GRPO 当前进度见
-[GRPO 阶段报告](reports/GRPO_EXPERIMENT_REPORT_zh.md)。
+[SVAMP 泛化报告](reports/SVAMP_EXPERIMENT_REPORT_zh.md)，GRPO 完整分析见
+[GRPO 中文报告](reports/GRPO_EXPERIMENT_REPORT_zh.md)。
 
 ## 最终结果
 
-| GSM8K 官方 test（1,319 题） | Raw Base | SFT v7 | OPD seed 42 | OPD 三次均值 ± SD |
+| GSM8K 官方 test（1,319 题） | Raw Base | SFT v7 | OPD 三次均值 ± SD | GRPO 三次均值 ± SD |
 |---|---:|---:|---:|---:|
-| 数值准确率 | 71.80% | 71.65% | 72.33% | **72.91% ± 0.54** |
-| 严格 `####` 准确率 | 0.00% | 71.65% | 72.25% | **72.83% ± 0.54** |
-| 格式遵循率 | 0.00% | **98.26%** | 97.73% | 97.68% ± 0.16 |
-| 达到 1,024 token 上限 | 3.11% | **1.36%** | 1.90% | 1.95% ± 0.16 |
-| 平均生成 token | 371.74 | **102.30** | 111.24 | 111.60 ± 1.34 |
-| 全量评测时间 | 179m 0s | 64m 4s | 75m 0s | 74m 57s ± 2m 48s |
+| 数值准确率 | 71.80% | 71.65% | **72.91% ± 0.54** | 72.18% ± 0.35 |
+| 严格 `####` 准确率 | 0.00% | 71.65% | **72.83% ± 0.54** | 72.10% ± 0.40 |
+| 格式遵循率 | 0.00% | **98.26%** | 97.68% ± 0.16 | 98.13% ± 0.09 |
+| 达到 1,024 token 上限 | 3.11% | **1.36%** | 1.95% ± 0.16 | 1.42% ± 0.04 |
+| 平均生成 token | 371.74 | **102.30** | 111.60 ± 1.34 | 102.99 ± 1.06 |
 
 逐题配对中，Base 独自答对 187 题，SFT 独自答对 185 题，精确双侧 McNemar
 `p=0.958659`。OPD seed 42/43/44 的 test 准确率分别为 72.33%、73.39%、
@@ -30,7 +30,9 @@ GRPO 三随机种子实验：
 McNemar `p` 分别为 0.439440、0.050487 和 0.117213，均未低于 0.05；三次
 validation 也都低于 SFT。因此可靠结论是：SFT 明显改善格式与效率，OPD 的 test
 收益具有跨运行的方向一致性，但仍没有充分统计证据证明稳定提升，并伴随格式、截断和
-长度退化。
+长度退化。GRPO seed 42/43/44 分别达到 72.25%、72.48% 和 71.80%，均值为
+`72.18% ± 0.35 pp`，相对 SFT 平均提高 0.53 pp；三次配对检验均不显著。其 SVAMP
+均值为 `81.20% ± 0.36 pp`，反而比 SFT 低 0.30 pp，因此同样没有跨数据集提升证据。
 
 ## 最终方案
 
@@ -46,7 +48,7 @@ validation 也都低于 SFT。因此可靠结论是：SFT 明显改善格式与�
 - OPD：TRL GKD，`lmbda=1.0`、`beta=0.5`，50 optimizer steps / 200 rollouts
 - OPD 报告 checkpoint：三个运行均固定使用 step 30，位于
   `outputs/opd/qwen25_math_15b_gkd_{pilot50,seed43,seed44}/checkpoint-30`
-- GRPO pilot：TRL GRPO，数值/格式奖励权重 1.0/0.1，`beta=0`，30 steps /
+- GRPO：TRL GRPO，数值/格式奖励权重 1.0/0.1，`beta=0`，30 steps /
   120 rollouts；seed 42/43/44 均固定 checkpoint-30
 
 v7 数据删除了 GSM8K 答案中的 23,716 个 `<<expression=result>>` 计算器标注，
@@ -65,7 +67,7 @@ results/dev/                # validation、smoke 与消融结果
 results/final/              # 最终官方 test 结果
 results/opd/                # 教师、OPD validation/test 与配对分析
 results/svamp/              # 独立 SVAMP 泛化评测协议与结果
-results/grpo/               # GRPO pilot、阶段汇总与正式评测计划
+results/grpo/               # GRPO validation/test、配对分析与多随机种子汇总
 results/archive/            # 历史 continued-SFT 结果
 reports/                    # 完整实验报告
 tests/                      # 单元测试
@@ -243,7 +245,7 @@ python3 scripts/compare_base_sft.py \
   --output results/final/test_base_sft_v7_ckpt888_transition_analysis.json
 ```
 
-### 8. GRPO Pilot
+### 8. GRPO
 
 当前 LLaMA-Factory checkout 没有 GRPO 训练入口，因此使用原生 TRL 0.24 脚本
 [`train_grpo.py`](scripts/train_grpo.py)。脚本从 SFT v7 adapter 继续训练，复现并排除固定
@@ -269,18 +271,20 @@ python3 scripts/train_grpo.py \
 
 smoke 已成功完成：7.49 秒训练、峰值分配显存 3.33 GiB、奖励和指标有限、LoRA 参数确实
 更新。随后 seed 42/43/44 均完成 30 steps / 120 rollouts，单次约 137–141 秒。固定
-checkpoint-30 的 512-token pilot validation 如下：
+checkpoint-30 随后使用与 SFT/OPD 完全一致的 1,024-token、原生 EOS 正式协议评测：
 
-| GRPO pilot validation（374 题） | seed42 | seed43 | seed44 | 三次均值 ± SD |
+| GRPO 正式 validation（374 题） | seed42 | seed43 | seed44 | 三次均值 ± SD |
 |---|---:|---:|---:|---:|
-| 数值准确率 | 86.10% | 85.56% | 85.03% | 85.56% ± 0.53 |
-| 严格准确率 | 85.83% | 85.56% | 85.03% | 85.47% ± 0.41 |
-| 格式遵循率 | 98.93% | 99.20% | 98.93% | 99.02% ± 0.15 |
+| 数值准确率 | 85.83% | 85.83% | 85.29% | 85.65% ± 0.31 |
+| 严格准确率 | 85.83% | 85.83% | 85.29% | 85.65% ± 0.31 |
+| 格式遵循率 | 99.20% | 99.73% | 99.47% | 99.47% ± 0.27 |
 
-seed42 pilot test 为 953/1319（72.25%）。但这些 GRPO 结果使用 512-token 上限和答案行
-提前停止，而正式 SFT/OPD 使用 1,024-token 上限与原生 EOS，因此目前不能当作最终同协议
-提升。结果已隔离到 `results/grpo/pilot/`；下一实验日将三个 seed 的 validation/test
-全部按正式协议重跑。完整状态和固定命令见
+正式 GSM8K test 的 seed 42/43/44 数值准确率为 72.25%、72.48% 和 71.80%，
+三次均值 `72.18% ± 0.35 pp`；相对 SFT 的差值分别为 +0.61、+0.83 和 +0.15 pp，
+McNemar `p` 分别为 0.291215、0.168978 和 0.885433。方向一致但单次均不显著。
+SVAMP 三次均值为 `81.20% ± 0.36 pp`，比 SFT 低 0.30 pp，也未显示跨数据集收益。
+完整协议、结果和逐题配对分析见
+[`GRPO_EXPERIMENT_REPORT_zh.md`](reports/GRPO_EXPERIMENT_REPORT_zh.md)与
 [`results/grpo/README.md`](results/grpo/README.md)。
 
 ## 评测指标

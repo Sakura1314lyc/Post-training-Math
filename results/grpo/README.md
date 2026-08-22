@@ -1,89 +1,69 @@
 # GRPO results / GRPO 结果
 
-本目录记录从最终 SFT v7 adapter 继续进行的 GRPO 实验。训练脚本为
-[`scripts/train_grpo.py`](../../scripts/train_grpo.py)，checkpoint 保存在被 Git 忽略的
-`outputs/grpo/`，这里只提交评测结果和机器可读汇总。
+本目录记录从最终 SFT v7 adapter 继续进行的三随机种子 GRPO 实验。训练脚本为
+[`scripts/train_grpo.py`](../../scripts/train_grpo.py)，checkpoint 位于被 Git 忽略的
+`outputs/grpo/`；仓库提交评测结果、逐题配对和机器可读汇总。
 
-## 当前状态（2026-08-21）
+## 状态（2026-08-22）
 
-- 1-step smoke 已通过：奖励、梯度、参数更新、保存和 8 GiB 显存链路均正常；
-- seed 42/43/44 的 30-step 训练均完成，每次 256 个候选 prompt、4 generations、
-  30 optimizer steps / 120 rollouts；
-- 三次固定 374 题 pilot validation 已完成；
-- seed42 pilot test 已完成；seed43/44 test 留待下一实验日；
-- 今天的评测使用 `max_new_tokens=512` 且启用答案行提前停止，与既有正式 SFT/OPD 的
-  `1024 + 原生 EOS` 协议不同，因此全部移入 `pilot/`，不能直接作为最终同协议比较。
+- seed42/43/44 的 30-step 训练、正式 validation、GSM8K test 和 SVAMP 已全部完成；
+- 报告 checkpoint 固定为 step 30，官方 test 未用于选择 checkpoint 或超参数；
+- 正式协议为贪心解码、BF16、1,024-token 上限、原生 EOS；
+- 早期 512-token 结果单独保存在 `pilot/`，不参与最终同协议结论。
 
-机器可读状态见 [`grpo_stage_summary.json`](grpo_stage_summary.json)，阶段分析见
+机器汇总见 [`grpo_multiseed_summary.json`](grpo_multiseed_summary.json)，完整分析见
 [`GRPO_EXPERIMENT_REPORT_zh.md`](../../reports/GRPO_EXPERIMENT_REPORT_zh.md)。
 
-## Pilot 结果
+## GSM8K Validation
 
-| 固定 validation（374 题） | seed42 | seed43 | seed44 | 三次均值 ± SD |
-|---|---:|---:|---:|---:|
-| 数值准确率 | 86.10% | 85.56% | 85.03% | 85.56% ± 0.53 |
-| 严格准确率 | 85.83% | 85.56% | 85.03% | 85.47% ± 0.41 |
-| 格式遵循率 | 98.93% | 99.20% | 98.93% | 99.02% ± 0.15 |
-| 达到 512-token 上限 | 0.53% | 0.00% | 0.53% | 0.36% ± 0.31 |
+| 374 题 validation | SFT v7 | GRPO 42 | GRPO 43 | GRPO 44 | GRPO 均值 ± SD |
+|---|---:|---:|---:|---:|---:|
+| 数值/严格准确率 | 85.29% | 85.83% | 85.83% | 85.29% | 85.65% ± 0.31 |
+| 格式遵循率 | 99.47% | 99.20% | 99.73% | 99.47% | 99.47% ± 0.27 |
+| 达到长度上限 | 0.53% | 0.80% | 0.53% | 1.07% | 0.80% ± 0.27 |
 
-seed42 pilot test 为 `953/1319 = 72.25%`，严格准确率同为 72.25%，格式率 98.18%，
-达到 512-token 上限 18 题。该数值只用于检查方向，不能直接与正式 SFT/OPD 报告做
-最终配对结论。
+SFT→GRPO seed42/43/44 的净正确数为 +2/+2/0，McNemar `p` 为
+0.790527/0.726562/1。
 
-## 下一实验日：正式同协议评测
+## GSM8K Test
 
-validation 与 test 都必须重新使用正式协议：贪心解码、1,024 token 上限、禁用答案行
-提前停止。评测 seed 固定为 42，以保持验证划分和生成随机状态一致；模型训练 seed 由路径
-区分。
+| 1,319 题 test | SFT v7 | OPD 均值 ± SD | GRPO 42 | GRPO 43 | GRPO 44 | GRPO 均值 ± SD |
+|---|---:|---:|---:|---:|---:|---:|
+| 数值准确率 | 71.65% | **72.91% ± 0.54** | 72.25% | 72.48% | 71.80% | 72.18% ± 0.35 |
+| 严格准确率 | 71.65% | **72.83% ± 0.54** | 72.25% | 72.40% | 71.65% | 72.10% ± 0.40 |
+| 格式遵循率 | **98.26%** | 97.68% ± 0.16 | 98.18% | 98.18% | 98.03% | 98.13% ± 0.09 |
+| 达到长度上限 | **1.36%** | 1.95% ± 0.16 | 1.36% | 1.44% | 1.44% | 1.42% ± 0.04 |
 
-```bash
-cd /home/sakura/projects/llm/post-training-math
-conda activate sft
+三次 GRPO 均高于 SFT，平均提高 0.53 pp；配对 `p` 为
+0.291215/0.168978/0.885433，均不显著。OPD 平均准确率比 GRPO 高 0.73 pp，但 GRPO
+的格式、截断和生成长度更接近 SFT。
 
-for train_seed in 42 43 44; do
-  time python3 scripts/eval_sft_adapter.py \
-    --base-model Qwen/Qwen2.5-Math-1.5B \
-    --adapter outputs/grpo/qwen25_math_15b_grpo_seed${train_seed}_pilot30/checkpoint-30 \
-    --output results/grpo/dev/gsm8k_grpo_seed${train_seed}_ckpt30_validation_native_v3.json \
-    --benchmark gsm8k \
-    --eval-split train_validation \
-    --validation-size 0.05 \
-    --seed 42 \
-    --max-new-tokens 1024 \
-    --no-stop-after-answer-line \
-    --dtype bfloat16
-done
-```
+## SVAMP
 
-完成 validation 后，不再据结果修改参数；对三个已固定运行执行官方 test：
+| 1,000 题 test | Raw Base | SFT v7 | OPD 均值 ± SD | GRPO 42 | GRPO 43 | GRPO 44 | GRPO 均值 ± SD |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 数值准确率 | **85.20%** | 81.50% | 81.93% ± 0.32 | 81.60% | 81.10% | 80.90% | 81.20% ± 0.36 |
+| 格式遵循率 | 0.00% | **98.80%** | 98.47% ± 0.21 | 98.90% | 98.60% | 98.40% | 98.63% ± 0.25 |
+| 达到长度上限 | 7.00% | **0.90%** | 1.23% ± 0.21 | 0.90% | 1.20% | 1.20% | 1.10% ± 0.17 |
 
-```bash
-for train_seed in 42 43 44; do
-  time python3 scripts/eval_sft_adapter.py \
-    --base-model Qwen/Qwen2.5-Math-1.5B \
-    --adapter outputs/grpo/qwen25_math_15b_grpo_seed${train_seed}_pilot30/checkpoint-30 \
-    --output results/grpo/final/test_gsm8k_grpo_seed${train_seed}_ckpt30_native_v3.json \
-    --benchmark gsm8k \
-    --eval-split test \
-    --seed 42 \
-    --max-new-tokens 1024 \
-    --no-stop-after-answer-line \
-    --dtype bfloat16
-done
-```
+GRPO 相对 SFT 的变化为 +0.10/−0.40/−0.60 pp，配对 `p` 为
+1/0.557197/0.361595。GSM8K 的正向结果没有跨数据集复现。
 
 ## 目录
 
 ```text
-pilot/dev/   # 今天的 512-token slice 与 validation，仅作 pilot
-pilot/test/  # 今天的 seed42 512-token test，仅作 pilot
-dev/         # 明日正式 1024-token validation（运行后生成）
-final/       # 明日正式 1024-token test（运行后生成）
+dev/         # 三 seed 正式 validation 与 SFT 配对分析
+final/       # 三 seed 正式 GSM8K test 与 SFT 配对分析
+pilot/dev/   # 早期 512-token slice/validation，仅作工程记录
+pilot/test/  # 早期 seed42 512-token test，仅作工程记录
 ```
 
-## 比较纪律
+SVAMP 原始结果与配对文件位于 [`results/svamp/final/`](../svamp/final/)。
 
-- checkpoint 固定为 step 30；不能根据官方 test 再选择 checkpoint 或参数；
-- 当前训练 `--seed` 同时控制 256 条训练样本抽取与训练随机性，三次 SD 是端到端运行波动；
-- 配对比较必须具有相同 evaluator、数据集、prompt 和 generation metadata；
-- `compare_base_sft.py` 默认拒绝不同评测协议，防止再次混用 512/1024 token 结果。
+## 实验纪律
+
+- checkpoint 固定为 step 30，不能根据官方 test 或 SVAMP 再调参；
+- `--seed` 同时控制训练样本抽取和训练随机性，SD 表示端到端运行波动；
+- 配对比较必须具有相同 evaluator、dataset、prompt 和 generation metadata；
+- `compare_base_sft.py` 默认拒绝真实协议冲突，同时兼容缺少可选元数据的旧结果；
+- `outputs/` 中的 LoRA checkpoint 不提交 Git。

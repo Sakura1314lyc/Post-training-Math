@@ -2,30 +2,30 @@
 
 [简体中文](README.md) | [English](README_en.md)
 
-This repository implements SFT and On-Policy Distillation (OPD/GKD), with a
-three-seed GRPO experiment currently in progress:
+This repository implements completed three-seed experiments for SFT,
+On-Policy Distillation (OPD/GKD), and GRPO:
 
 > `Qwen/Qwen2.5-Math-1.5B` (raw math base) → GSM8K LoRA-SFT → on-policy
-> distillation with an Instruct teacher → held-out selection → official test
+> distillation with an Instruct teacher / GRPO → held-out selection → official
+> test → independent SVAMP generalization evaluation
 
 Detailed reports: [SFT (Chinese)](reports/SFT_EXPERIMENT_REPORT_zh.md),
 [OPD (English)](reports/OPD_EXPERIMENT_REPORT.md), and
 [OPD (Chinese)](reports/OPD_EXPERIMENT_REPORT_zh.md). The independent
 generalization analysis is documented in the
-[SVAMP report (Chinese)](reports/SVAMP_EXPERIMENT_REPORT_zh.md). Current GRPO
-status is documented in the
-[GRPO stage report (Chinese)](reports/GRPO_EXPERIMENT_REPORT_zh.md).
+[SVAMP report (Chinese)](reports/SVAMP_EXPERIMENT_REPORT_zh.md). The complete
+GRPO analysis is documented in the
+[GRPO report (Chinese)](reports/GRPO_EXPERIMENT_REPORT_zh.md).
 
 ## Final result
 
-| Official GSM8K test (1,319 examples) | Raw Base | SFT v7 | OPD seed 42 | OPD 3-run mean ± SD |
+| Official GSM8K test (1,319 examples) | Raw Base | SFT v7 | OPD 3-run mean ± SD | GRPO 3-run mean ± SD |
 |---|---:|---:|---:|---:|
-| Relaxed numerical accuracy | 71.80% | 71.65% | 72.33% | **72.91% ± 0.54** |
-| Strict `####` accuracy | 0.00% | 71.65% | 72.25% | **72.83% ± 0.54** |
-| Format compliance | 0.00% | **98.26%** | 97.73% | 97.68% ± 0.16 |
-| Hit 1,024-token limit | 3.11% | **1.36%** | 1.90% | 1.95% ± 0.16 |
-| Mean generated tokens | 371.74 | **102.30** | 111.24 | 111.60 ± 1.34 |
-| Full evaluation time | 179m 0s | 64m 4s | 75m 0s | 74m 57s ± 2m 48s |
+| Relaxed numerical accuracy | 71.80% | 71.65% | **72.91% ± 0.54** | 72.18% ± 0.35 |
+| Strict `####` accuracy | 0.00% | 71.65% | **72.83% ± 0.54** | 72.10% ± 0.40 |
+| Format compliance | 0.00% | **98.26%** | 97.68% ± 0.16 | 98.13% ± 0.09 |
+| Hit 1,024-token limit | 3.11% | **1.36%** | 1.95% ± 0.16 | 1.42% ± 0.04 |
+| Mean generated tokens | 371.74 | **102.30** | 111.60 ± 1.34 | 102.99 ± 1.06 |
 
 The paired comparison contains 187 Base-only correct answers and 185 SFT-only
 correct answers. The exact two-sided McNemar test gives `p=0.958659`. SFT v7
@@ -37,7 +37,10 @@ SFT. Their paired McNemar p-values against SFT are 0.439440, 0.050487, and
 0.117213, while all three validation scores are below SFT. The test direction is
 consistent across runs, but the evidence is still insufficient to claim a stable,
 statistically significant improvement. OPD also slightly worsens formatting,
-truncation, and response length.
+truncation, and response length. GRPO seeds 42/43/44 reach 72.25%, 72.48%, and
+71.80%, for `72.18% ± 0.35 pp`; their paired gains over SFT are all
+non-significant. GRPO averages `81.20% ± 0.36 pp` on SVAMP, 0.30 pp below SFT,
+so it does not provide evidence of a cross-dataset gain either.
 
 ## Final setup
 
@@ -53,7 +56,7 @@ truncation, and response length.
 - OPD objective: TRL GKD, `lmbda=1.0`, `beta=0.5`, 50 steps / 200 rollouts
 - Reported OPD checkpoints: step 30 from
   `outputs/opd/qwen25_math_15b_gkd_{pilot50,seed43,seed44}`
-- GRPO pilot: native TRL GRPO, numerical/format reward weights 1.0/0.1,
+- GRPO: native TRL GRPO, numerical/format reward weights 1.0/0.1,
   `beta=0`, 30 steps / 120 rollouts, fixed checkpoint-30 for seeds 42/43/44
 
 The v7 dataset removes 23,716 `<<expression=result>>` calculator annotations
@@ -71,7 +74,7 @@ results/dev/                # Validation and diagnostic artifacts
 results/final/              # Final official-test artifacts
 results/opd/                # Teacher, OPD validation/test, and paired analyses
 results/svamp/              # Independent SVAMP generalization protocol and results
-results/grpo/               # GRPO pilot, stage summary, and official-evaluation plan
+results/grpo/               # GRPO validation/test, paired analyses, and multi-seed summary
 results/archive/            # Historical continued-SFT experiments
 reports/                    # Experiment reports
 tests/                      # Unit tests
@@ -195,7 +198,7 @@ The official test set must not be used for checkpoint or hyperparameter
 selection. Token-level validation loss is also not a substitute for free-generation
 mathematical accuracy.
 
-### GRPO pilot
+### GRPO
 
 The current LLaMA-Factory checkout does not expose a GRPO training stage, so
 [`train_grpo.py`](scripts/train_grpo.py) uses native TRL 0.24. It continues the
@@ -222,22 +225,24 @@ the initial SFT policy as its PEFT reference.
 The smoke run completed successfully in 7.49 seconds with 3.33 GiB peak allocated
 memory, finite rewards and metrics, and a verified LoRA parameter update. Seeds
 42/43/44 then completed 30 steps / 120 rollouts each in roughly 137–141 seconds.
-Their fixed checkpoint-30 results under the preliminary 512-token validation
-protocol are:
+Their fixed checkpoint-30 adapters were then evaluated under the same formal
+1,024-token, native-EOS protocol used for SFT and OPD:
 
-| GRPO pilot validation (374 examples) | seed42 | seed43 | seed44 | 3-run mean ± SD |
+| Formal GRPO validation (374 examples) | seed42 | seed43 | seed44 | 3-run mean ± SD |
 |---|---:|---:|---:|---:|
-| Numerical accuracy | 86.10% | 85.56% | 85.03% | 85.56% ± 0.53 |
-| Strict accuracy | 85.83% | 85.56% | 85.03% | 85.47% ± 0.41 |
-| Format compliance | 98.93% | 99.20% | 98.93% | 99.02% ± 0.15 |
+| Numerical accuracy | 85.83% | 85.83% | 85.29% | 85.65% ± 0.31 |
+| Strict accuracy | 85.83% | 85.83% | 85.29% | 85.65% ± 0.31 |
+| Format compliance | 99.20% | 99.73% | 99.47% | 99.47% ± 0.27 |
 
-The seed42 pilot test score is 953/1319 (72.25%). These GRPO evaluations used a
-512-token limit with answer-line stopping, whereas the official SFT/OPD protocol
-uses 1,024 tokens and native EOS. They are therefore isolated under
-`results/grpo/pilot/` and must not be presented as final matched-protocol gains.
-All three validation and test runs will be repeated under the official protocol;
-see [`results/grpo/README.md`](results/grpo/README.md) for the fixed commands and
-current status.
+Formal GSM8K test accuracy for seeds 42/43/44 is 72.25%, 72.48%, and 71.80%,
+for `72.18% ± 0.35 pp`. The paired changes over SFT are +0.61, +0.83, and
++0.15 pp, with McNemar p-values 0.291215, 0.168978, and 0.885433. The direction
+is consistent, but no individual result is significant. On SVAMP, the three-run
+mean is `81.20% ± 0.36 pp`, 0.30 pp below SFT, so no cross-dataset benefit is
+observed. See the complete
+[`GRPO report`](reports/GRPO_EXPERIMENT_REPORT_zh.md) and
+[`results/grpo/README.md`](results/grpo/README.md) for protocols, artifacts, and
+paired analyses.
 
 ## Tests
 

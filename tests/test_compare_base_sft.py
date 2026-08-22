@@ -38,6 +38,19 @@ class CompareBaseSftTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "generation"):
             validate_comparison_protocol(base, candidate)
 
+    def test_missing_legacy_metadata_is_accepted(self):
+        base = self.payload()
+        candidate = self.payload()
+        del base["benchmark"]
+        validate_comparison_protocol(base, candidate)
+
+    def test_missing_generation_metadata_is_rejected(self):
+        base = self.payload()
+        candidate = self.payload()
+        del base["generation"]
+        with self.assertRaisesRegex(ValueError, "generation"):
+            validate_comparison_protocol(base, candidate)
+
     def test_different_evaluator_is_rejected(self):
         base = self.payload()
         candidate = self.payload()

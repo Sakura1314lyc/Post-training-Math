@@ -1,0 +1,207 @@
+{
+  "schema_version": 2,
+  "status": "complete",
+  "completed_on": "2026-08-22",
+  "base_model": "Qwen/Qwen2.5-Math-1.5B",
+  "initial_adapter": "outputs/qwen25_math_15b_base_lora_sft_v7/checkpoint-888",
+  "training": {
+    "implementation": "scripts/train_grpo.py",
+    "dataset": "data/gsm8k_sft_clean.json",
+    "training_split_size": 7099,
+    "excluded_validation_size": 374,
+    "selected_samples_per_run": 256,
+    "optimizer_steps": 30,
+    "num_generations": 4,
+    "rollouts": 120,
+    "learning_rate": 0.000005,
+    "beta": 0.0,
+    "accuracy_reward_weight": 1.0,
+    "format_reward_weight": 0.1,
+    "max_prompt_length": 512,
+    "max_completion_length": 128,
+    "runs": [
+      {
+        "seed": 42,
+        "checkpoint": "outputs/grpo/qwen25_math_15b_grpo_seed42_pilot30/checkpoint-30",
+        "train_loss": -0.04043088083465894,
+        "train_runtime_seconds": 136.7124,
+        "tracked_parameter_max_abs_delta": 0.00010990910232067108,
+        "peak_allocated_gib": 3.328205108642578
+      },
+      {
+        "seed": 43,
+        "checkpoint": "outputs/grpo/qwen25_math_15b_grpo_seed43_pilot30/checkpoint-30",
+        "train_loss": -0.10796121830741565,
+        "train_runtime_seconds": 140.8367,
+        "tracked_parameter_max_abs_delta": 0.00009450409561395645,
+        "peak_allocated_gib": 3.328205108642578
+      },
+      {
+        "seed": 44,
+        "checkpoint": "outputs/grpo/qwen25_math_15b_grpo_seed44_pilot30/checkpoint-30",
+        "train_loss": -0.1343980538348357,
+        "train_runtime_seconds": 140.0857,
+        "tracked_parameter_max_abs_delta": 0.00009720306843519211,
+        "peak_allocated_gib": 3.328205108642578
+      }
+    ]
+  },
+  "official_evaluation_protocol": {
+    "do_sample": false,
+    "max_new_tokens": 1024,
+    "stop_after_completed_answer_line": false,
+    "dtype": "bfloat16",
+    "eos_token_ids": [151643, 151645]
+  },
+  "gsm8k_validation": {
+    "num_samples": 374,
+    "runs": [
+      {
+        "seed": 42,
+        "source": "results/grpo/dev/gsm8k_grpo_seed42_ckpt30_validation_native_v3.json",
+        "correct": 321,
+        "strict_correct": 321,
+        "format_compliant": 371,
+        "hit_max_new_tokens": 3,
+        "sft_correct_to_grpo_wrong": 6,
+        "sft_wrong_to_grpo_correct": 8,
+        "mcnemar_exact_two_sided_p": 0.79052734375
+      },
+      {
+        "seed": 43,
+        "source": "results/grpo/dev/gsm8k_grpo_seed43_ckpt30_validation_native_v3.json",
+        "correct": 321,
+        "strict_correct": 321,
+        "format_compliant": 373,
+        "hit_max_new_tokens": 2,
+        "sft_correct_to_grpo_wrong": 3,
+        "sft_wrong_to_grpo_correct": 5,
+        "mcnemar_exact_two_sided_p": 0.7265625
+      },
+      {
+        "seed": 44,
+        "source": "results/grpo/dev/gsm8k_grpo_seed44_ckpt30_validation_native_v3.json",
+        "correct": 319,
+        "strict_correct": 319,
+        "format_compliant": 372,
+        "hit_max_new_tokens": 4,
+        "sft_correct_to_grpo_wrong": 8,
+        "sft_wrong_to_grpo_correct": 8,
+        "mcnemar_exact_two_sided_p": 1.0
+      }
+    ],
+    "accuracy_mean": 0.85650623885918,
+    "accuracy_sample_sd": 0.0030874345945969416,
+    "strict_accuracy_mean": 0.85650623885918,
+    "strict_accuracy_sample_sd": 0.0030874345945969416,
+    "format_compliance_mean": 0.9946524064171123,
+    "format_compliance_sample_sd": 0.002673796791443861
+  },
+  "gsm8k_test": {
+    "num_samples": 1319,
+    "runs": [
+      {
+        "seed": 42,
+        "source": "results/grpo/final/test_gsm8k_grpo_seed42_ckpt30_native_v3.json",
+        "correct": 953,
+        "strict_correct": 953,
+        "format_compliant": 1295,
+        "hit_max_new_tokens": 18,
+        "mean_generated_tokens": 101.85974222896134,
+        "sft_correct_to_grpo_wrong": 18,
+        "sft_wrong_to_grpo_correct": 26,
+        "mcnemar_exact_two_sided_p": 0.2912152365458951
+      },
+      {
+        "seed": 43,
+        "source": "results/grpo/final/test_gsm8k_grpo_seed43_ckpt30_native_v3.json",
+        "correct": 956,
+        "strict_correct": 955,
+        "format_compliant": 1295,
+        "hit_max_new_tokens": 19,
+        "mean_generated_tokens": 103.13874147081123,
+        "sft_correct_to_grpo_wrong": 21,
+        "sft_wrong_to_grpo_correct": 32,
+        "mcnemar_exact_two_sided_p": 0.16897782228771874
+      },
+      {
+        "seed": 44,
+        "source": "results/grpo/final/test_gsm8k_grpo_seed44_ckpt30_native_v3.json",
+        "correct": 947,
+        "strict_correct": 945,
+        "format_compliant": 1293,
+        "hit_max_new_tokens": 19,
+        "mean_generated_tokens": 103.97194844579226,
+        "sft_correct_to_grpo_wrong": 23,
+        "sft_wrong_to_grpo_correct": 25,
+        "mcnemar_exact_two_sided_p": 0.8854334972865132
+      }
+    ],
+    "accuracy_mean": 0.7217589082638363,
+    "accuracy_sample_sd": 0.0034742802842727925,
+    "strict_accuracy_mean": 0.7210007581501138,
+    "strict_accuracy_sample_sd": 0.004011753314730255,
+    "format_compliance_mean": 0.9812989638615113,
+    "format_compliance_sample_sd": 0.0008754363444877127,
+    "hit_max_new_tokens_mean": 0.014152135456153653,
+    "hit_max_new_tokens_sample_sd": 0.00043771817224384036,
+    "mean_generated_tokens": 102.99014404852161,
+    "mean_generated_tokens_sample_sd": 1.0639147856093285
+  },
+  "svamp_test": {
+    "num_samples": 1000,
+    "runs": [
+      {
+        "seed": 42,
+        "source": "results/svamp/final/svamp_grpo_seed42_ckpt30_v1.json",
+        "correct": 816,
+        "strict_correct": 815,
+        "format_compliant": 989,
+        "hit_max_new_tokens": 9,
+        "mean_generated_tokens": 54.921,
+        "sft_correct_to_grpo_wrong": 13,
+        "sft_wrong_to_grpo_correct": 14,
+        "mcnemar_exact_two_sided_p": 1.0
+      },
+      {
+        "seed": 43,
+        "source": "results/svamp/final/svamp_grpo_seed43_ckpt30_v1.json",
+        "correct": 811,
+        "strict_correct": 809,
+        "format_compliant": 986,
+        "hit_max_new_tokens": 12,
+        "mean_generated_tokens": 58.54,
+        "sft_correct_to_grpo_wrong": 15,
+        "sft_wrong_to_grpo_correct": 11,
+        "mcnemar_exact_two_sided_p": 0.557197093963623
+      },
+      {
+        "seed": 44,
+        "source": "results/svamp/final/svamp_grpo_seed44_ckpt30_v1.json",
+        "correct": 809,
+        "strict_correct": 808,
+        "format_compliant": 984,
+        "hit_max_new_tokens": 12,
+        "mean_generated_tokens": 58.277,
+        "sft_correct_to_grpo_wrong": 18,
+        "sft_wrong_to_grpo_correct": 12,
+        "mcnemar_exact_two_sided_p": 0.361594608053565
+      }
+    ],
+    "accuracy_mean": 0.812,
+    "accuracy_sample_sd": 0.003605551275463931,
+    "strict_accuracy_mean": 0.8106666666666666,
+    "strict_accuracy_sample_sd": 0.0037859388972001223,
+    "format_compliance_mean": 0.9863333333333333,
+    "format_compliance_sample_sd": 0.0025166114784235857,
+    "hit_max_new_tokens_mean": 0.011,
+    "hit_max_new_tokens_sample_sd": 0.0017320508075688778,
+    "mean_generated_tokens": 57.246,
+    "mean_generated_tokens_sample_sd": 2.017798552878855
+  },
+  "conclusion": {
+    "gsm8k_test_delta_vs_sft_percentage_points": 0.5307050791007587,
+    "svamp_test_delta_vs_sft_percentage_points": -0.3,
+    "claim": "GRPO gives a directionally consistent but individually non-significant GSM8K gain and does not reproduce that gain on SVAMP."
+  }
+}

@@ -51,7 +51,16 @@ def validate_comparison_protocol(base_payload: dict, sft_payload: dict) -> None:
     mismatched = [
         key
         for key in PROTOCOL_KEYS
-        if base_payload.get(key) != sft_payload.get(key)
+        if (
+            key == "generation"
+            and base_payload.get(key) != sft_payload.get(key)
+        )
+        or (
+            key != "generation"
+            and base_payload.get(key) is not None
+            and sft_payload.get(key) is not None
+            and base_payload.get(key) != sft_payload.get(key)
+        )
     ]
     if mismatched:
         raise ValueError(
@@ -198,7 +207,12 @@ def main() -> None:
         "base_evaluation_version": base_version,
         "sft_evaluation_version": sft_version,
         "comparison_protocol": {
-            key: base_payload.get(key) for key in PROTOCOL_KEYS
+            key: (
+                base_payload.get(key)
+                if base_payload.get(key) is not None
+                else sft_payload.get(key)
+            )
+            for key in PROTOCOL_KEYS
         },
         "summary": summary,
         "details": details,

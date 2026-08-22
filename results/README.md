@@ -11,7 +11,7 @@ dev/legacy_v1_v2/ # v1/v2、早期 Base、smoke 与 debug 结果
 final/          # 官方 GSM8K test 最终结果
 opd/            # 教师、OPD checkpoint 选择、validation 与最终 test
 svamp/          # 独立 SVAMP 泛化评测协议与结果
-grpo/           # GRPO 三随机种子训练、pilot 结果与正式评测计划
+grpo/           # GRPO 三随机种子训练、正式评测、配对分析与汇总
 archive/        # 历史 Instruct 与 0.5B 实验
 ```
 
@@ -64,14 +64,16 @@ checkpoint-30，并完成 seed 42/43/44 三次端到端运行：
 
 Base 为 85.20%，SFT 为 81.50%（配对 `p=0.00761528`）；OPD seed 42/43/44
 为 82.30%/81.70%/81.80%，均值 `81.93% ± 0.32 pp`。三次相对 SFT 均为正向
-点估计，但配对 `p` 为 0.322236/0.891923/0.794844，均不显著。
+点估计，但配对 `p` 为 0.322236/0.891923/0.794844，均不显著。GRPO seed 42/43/44
+为 81.60%/81.10%/80.90%，均值 `81.20% ± 0.36 pp`；相对 SFT 的方向不一致，说明
+GSM8K 上的小幅正收益没有在 SVAMP 复现。
 
-## GRPO（进行中）
+## GRPO
 
 `grpo/` 记录从 SFT v7 继续训练的原生 TRL GRPO 实验。seed 42/43/44 的 30-step 训练
-均已完成；今天的 512-token validation 与 seed42 test 属于 pilot 协议，已单独放入
-`grpo/pilot/`，不能直接作为对正式 SFT/OPD 的最终比较。阶段汇总、协议说明和下一实验日
-的 1,024-token 原生 EOS 命令见 [`grpo/README.md`](grpo/README.md)。
+及正式 validation、GSM8K test、SVAMP 均已完成。GSM8K test 三次平均为
+`72.18% ± 0.35 pp`，比 SFT 高 0.53 pp；SVAMP 平均为 `81.20% ± 0.36 pp`，比
+SFT 低 0.30 pp。完整汇总、协议说明和配对文件见 [`grpo/README.md`](grpo/README.md)。
 
 ## 结果解释规则
 
