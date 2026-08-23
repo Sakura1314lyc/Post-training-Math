@@ -216,9 +216,13 @@ SFT 部分已经形成完整、可复现且包含负结果的实验闭环。最�
 > 生成 token 减少 72.5%，全量评测约加速 2.79 倍。因此它主要提升了输出对齐与
 > 效率，而不是基础数学正确率。
 
-后续 OPD/GKD 实验已复用相同 Base、数据划分、评测器和最终 test 纪律完成，详见
-[`OPD_EXPERIMENT_REPORT_zh.md`](OPD_EXPERIMENT_REPORT_zh.md)。OPD 在 test 上得到
-72.33% 的最高点估计，但相对 SFT 的配对差异不显著。
+后续 OPD/GKD 与 GRPO 实验已复用相同 Base、数据划分、评测器和最终 test 纪律完成。
+OPD 三次 test 均值为 `72.91% ± 0.54 pp`（最高 73.39%），GRPO 三次均值为
+`72.18% ± 0.35 pp`；两种方法的单次 SFT 配对差异均不显著，而且收益都没有在独立
+SVAMP 上形成可靠提升。详见
+[`OPD_EXPERIMENT_REPORT_zh.md`](OPD_EXPERIMENT_REPORT_zh.md)、
+[`GRPO_EXPERIMENT_REPORT_zh.md`](GRPO_EXPERIMENT_REPORT_zh.md)与
+[`SVAMP_EXPERIMENT_REPORT_zh.md`](SVAMP_EXPERIMENT_REPORT_zh.md)。
 
 ## 10. 复现入口
 

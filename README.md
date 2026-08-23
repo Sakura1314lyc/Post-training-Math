@@ -216,24 +216,26 @@ python3 scripts/eval_sft_adapter.py \
   --output results/svamp/smoke/svamp_base_15b_smoke10_v1.json
 ```
 
-smoke 正常后，用同一协议依次评测 Raw Base、SFT v7 和 OPD seed 42/43/44；正式命令与
-文件命名见 [`results/svamp/README.md`](results/svamp/README.md)。所有五个运行固定使用
+smoke 正常后，用同一协议依次评测 Raw Base、SFT v7，以及 OPD/GRPO seed 42/43/44；
+正式命令与文件命名见 [`results/svamp/README.md`](results/svamp/README.md)。所有八个运行固定使用
 贪心解码、原生 EOS 和 1,024 token 上限，SVAMP 结果只用于最终泛化报告，不再用于选
 checkpoint 或调参。SVAMP 结果的评分器版本为 `svamp_numeric_v1`。
 
-截至 2026-08-21，固定协议中的五组评测已经全部完成：
+截至 2026-08-22，固定协议中的八组评测已经全部完成：
 
-| SVAMP test（1,000 题） | Raw Base | SFT v7 | OPD seed 42/43/44 均值 ± SD |
-|---|---:|---:|---:|
-| 数值准确率 | **85.20%** | 81.50% | 81.93% ± 0.32 |
-| 格式遵循率 | 0.00% | **98.80%** | 98.47% ± 0.21 |
-| 达到 token 上限 | 7.00% | **0.90%** | 1.23% ± 0.21 |
-| 平均生成 token | 290.81 | **55.07** | 61.32 ± 2.12 |
+| SVAMP test（1,000 题） | Raw Base | SFT v7 | OPD 三次均值 ± SD | GRPO 三次均值 ± SD |
+|---|---:|---:|---:|---:|
+| 数值准确率 | **85.20%** | 81.50% | 81.93% ± 0.32 | 81.20% ± 0.36 |
+| 严格准确率 | 0.00% | 81.40% | 81.80% ± 0.26 | 81.07% ± 0.38 |
+| 格式遵循率 | 0.00% | **98.80%** | 98.47% ± 0.21 | 98.63% ± 0.25 |
+| 达到 token 上限 | 7.00% | **0.90%** | 1.23% ± 0.21 | 1.10% ± 0.17 |
+| 平均生成 token | 290.81 | **55.07** | 61.32 ± 2.12 | 57.25 ± 2.02 |
 
 Base→SFT 的差值为 −3.70 pp，配对 McNemar `p=0.00761528`；SFT→OPD seed
 42/43/44 分别为 +0.80/+0.20/+0.30 pp，`p=0.322236/0.891923/0.794844`。
 因此 SFT 的跨数据集数值准确率显著下降，同时格式、终止和速度明显改善；OPD 三次方向
-一致但只平均恢复 0.43 pp，均无显著性证据，且仍未恢复 Raw Base 水平。完整分析见
+一致但只平均恢复 0.43 pp，GRPO 相对 SFT 平均下降 0.30 pp。两者均无单次显著提升，
+且都未恢复 Raw Base 水平。完整分析见
 [`SVAMP_EXPERIMENT_REPORT_zh.md`](reports/SVAMP_EXPERIMENT_REPORT_zh.md)。
 
 ### 7. 配对分析

@@ -171,20 +171,21 @@ python3 scripts/eval_sft_adapter.py \
   --output results/svamp/smoke/svamp_base_15b_smoke10_v1.json
 ```
 
-After the smoke test, evaluate Raw Base, SFT v7, and OPD seeds 42/43/44 exactly
-once with the fixed protocol in
+After the smoke test, evaluate Raw Base, SFT v7, and OPD/GRPO seeds 42/43/44
+exactly once with the fixed protocol in
 [`results/svamp/README.md`](results/svamp/README.md). These results use evaluator
 version `svamp_numeric_v1` and must not be used for checkpoint or hyperparameter
 selection.
 
-As of 2026-08-21, all five runs in the fixed protocol are complete:
+As of 2026-08-22, all eight runs in the fixed protocol are complete:
 
-| SVAMP test (1,000 examples) | Raw Base | SFT v7 | OPD seeds 42/43/44 mean ± SD |
-|---|---:|---:|---:|
-| Numerical accuracy | **85.20%** | 81.50% | 81.93% ± 0.32 |
-| Format compliance | 0.00% | **98.80%** | 98.47% ± 0.21 |
-| Hit token limit | 7.00% | **0.90%** | 1.23% ± 0.21 |
-| Mean generated tokens | 290.81 | **55.07** | 61.32 ± 2.12 |
+| SVAMP test (1,000 examples) | Raw Base | SFT v7 | OPD 3-run mean ± SD | GRPO 3-run mean ± SD |
+|---|---:|---:|---:|---:|
+| Numerical accuracy | **85.20%** | 81.50% | 81.93% ± 0.32 | 81.20% ± 0.36 |
+| Strict accuracy | 0.00% | 81.40% | 81.80% ± 0.26 | 81.07% ± 0.38 |
+| Format compliance | 0.00% | **98.80%** | 98.47% ± 0.21 | 98.63% ± 0.25 |
+| Hit token limit | 7.00% | **0.90%** | 1.23% ± 0.21 | 1.10% ± 0.17 |
+| Mean generated tokens | 290.81 | **55.07** | 61.32 ± 2.12 | 57.25 ± 2.02 |
 
 The paired Base-to-SFT change is −3.70 pp (`p=0.00761528`). OPD seeds 42, 43,
 and 44 recover +0.80, +0.20, and +0.30 pp over SFT, with `p=0.322236`,
@@ -192,7 +193,9 @@ and 44 recover +0.80, +0.20, and +0.30 pp over SFT, with `p=0.322236`,
 numerical regression despite major format, termination, and speed improvements.
 OPD is directionally consistent across all three runs but recovers only 0.43 pp
 on average, with no individually significant paired result, and remains below Raw
-Base.
+Base. GRPO changes SVAMP accuracy by +0.10, −0.40, and −0.60 pp relative to SFT,
+for a mean change of −0.30 pp; it therefore does not reproduce its small GSM8K
+gain on this independent dataset.
 
 The official test set must not be used for checkpoint or hyperparameter
 selection. Token-level validation loss is also not a substitute for free-generation
