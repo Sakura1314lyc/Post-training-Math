@@ -5,7 +5,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 import torch
-from datasets import load_dataset
+from datasets import Dataset, load_dataset
 from peft import PeftModel
 from transformers import (
     AutoModelForCausalLM,
@@ -27,6 +27,7 @@ from evaluation_utils import (
     has_completed_answer_line,
     score_response,
 )
+from experiment_protocol import sha256_file
 
 
 class CompletedAnswerLineStoppingCriteria(StoppingCriteria):
@@ -84,12 +85,47 @@ def resolve_terminators(tokenizer) -> list[int]:
     return terminators
 
 
-def load_evaluation_dataset(args: argparse.Namespace, benchmark_spec):
-    source_split = resolve_source_split(benchmark_spec, args.eval_split)
-    dataset = load_dataset(args.dataset_name, args.dataset_config, split=source_split)
-    dataset = dataset.add_column("source_index", list(range(len(dataset))))
+def load_local_gsm8k_dataset(path: Path) -> Dataset:
+    with path.open("r", encoding="utf-8") as file:
+        records = json.load(file)
+    if not isinstance(records, list) or not records:
+        raise ValueError("local dataset must be a non-empty JSON list")
+    converted = []
+    for local_index, record in enumerate(records):
+        if not isinstance(record, dict):
+            raise ValueError(f"local record {local_index} is not an object")
+        question = record.get("instruction")
+        answer = record.get("output")
+        source_index = record.get("source_index")
+        if not isinstance(question, str) or not question.strip():
+            raise ValueError(f"local record {local_index} has no instruction")
+        if not isinstance(answer, str) or not answer.strip():
+            raise ValueError(f"local record {local_index} has no output")
+        if not isinstance(source_index, int):
+            raise ValueError(f"local record {local_index} has no integer source_index")
+        converted.append(
+            {
+                "question": question,
+                "answer": answer,
+                "source_index": source_index,
+            }
+        )
+    if len({record["source_index"] for record in converted}) != len(converted):
+        raise ValueError("local dataset contains duplicate source_index values")
+    return Dataset.from_list(converted)
 
-    if args.eval_split == "train_validation":
+
+def load_evaluation_dataset(args: argparse.Namespace, benchmark_spec):
+    local_dataset_file = getattr(args, "local_dataset_file", None)
+    if local_dataset_file is not None:
+        dataset = load_local_gsm8k_dataset(local_dataset_file)
+        source_split = f"local:{args.local_split_role}"
+    else:
+        source_split = resolve_source_split(benchmark_spec, args.eval_split)
+        dataset = load_dataset(args.dataset_name, args.dataset_config, split=source_split)
+        dataset = dataset.add_column("source_index", list(range(len(dataset))))
+
+    if local_dataset_file is None and args.eval_split == "train_validation":
         dataset = dataset.train_test_split(
             test_size=args.validation_size,
             seed=args.seed,
@@ -134,6 +170,19 @@ def main():
         default="test",
         help="Use test, or reproduce LLaMA-Factory's held-out train validation split.",
     )
+    parser.add_argument(
+        "--local-dataset-file",
+        type=Path,
+        help=(
+            "Evaluate a generated confirmatory JSON partition instead of loading "
+            "a Hugging Face split. GSM8K-format records only."
+        ),
+    )
+    parser.add_argument(
+        "--local-split-role",
+        choices=("dev_select", "dev_audit"),
+        help="Required provenance label when --local-dataset-file is used.",
+    )
     parser.add_argument("--validation-size", type=float, default=0.05)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--start-index", type=int, default=0)
@@ -159,6 +208,17 @@ def main():
 
     args = parser.parse_args()
     benchmark_spec = get_benchmark_spec(args.benchmark)
+    if args.local_dataset_file is not None:
+        if args.benchmark != "gsm8k":
+            parser.error("--local-dataset-file currently supports only --benchmark gsm8k")
+        if args.local_split_role is None:
+            parser.error("--local-split-role is required with --local-dataset-file")
+        if not args.local_dataset_file.is_file():
+            parser.error(f"local dataset does not exist: {args.local_dataset_file}")
+        if args.eval_split != "test":
+            parser.error("local partitions cannot be combined with --eval-split")
+    elif args.local_split_role is not None:
+        parser.error("--local-split-role requires --local-dataset-file")
     try:
         resolve_source_split(benchmark_spec, args.eval_split)
     except ValueError as error:
@@ -337,6 +397,17 @@ def main():
             "config": args.dataset_config,
             "source_split": source_split,
             "evaluation_split": args.eval_split,
+            "local_file": (
+                str(args.local_dataset_file)
+                if args.local_dataset_file is not None
+                else None
+            ),
+            "local_file_sha256": (
+                sha256_file(args.local_dataset_file)
+                if args.local_dataset_file is not None
+                else None
+            ),
+            "local_split_role": args.local_split_role,
             "validation_size": args.validation_size if args.eval_split == "train_validation" else None,
             "seed": args.seed,
             "start_index": args.start_index,

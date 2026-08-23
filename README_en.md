@@ -17,6 +17,17 @@ generalization analysis is documented in the
 GRPO analysis is documented in the
 [GRPO report (Chinese)](reports/GRPO_EXPERIMENT_REPORT_zh.md).
 
+A separate [confirmatory v2 protocol](reports/CONFIRMATORY_V2_PROTOCOL_zh.md)
+now addresses the single SFT seed, repeated validation inspection, small
+OPD/GRPO budgets, confounded seeds, and the GRPO KL-reference limitation. Its
+configs and commands are in [`configs/confirmatory/`](configs/confirmatory/README.md).
+Until those runs are complete, the table below remains exploratory evidence.
+
+Current confirmatory-v2 progress: all three SFT runs are complete with
+`83.78% ± 1.47 pp` dev-select accuracy, and the first fixed-data 200-step OPD
+run has completed training. The tracked interim summary is
+[`results/confirmatory_v2/confirmatory_v2_progress.json`](results/confirmatory_v2/confirmatory_v2_progress.json).
+
 ## Final result
 
 | Official GSM8K test (1,319 examples) | Raw Base | SFT v7 | OPD 3-run mean ± SD | GRPO 3-run mean ± SD |
@@ -141,9 +152,11 @@ split. Model checkpoints stay in the ignored `outputs/` directory; tracked OPD
 metrics and paired analyses are under `results/opd/`.
 
 Seeds 42/43/44 use identical hyperparameters and a fixed checkpoint-30. The
-current `--seed` controls both selection of the 256 training prompts and trainer
-randomness, so the reported variation is end-to-end run variability rather than
-fixed-data training-seed variability. The aggregate artifact is
+legacy `--seed` used by those runs controls both selection of the 256 training
+prompts and trainer randomness, so the reported variation is end-to-end run
+variability rather than fixed-data training-seed variability. The scripts now
+offer separate `--data-seed`, `--training-seed`, and `--generation-seed` options
+for confirmatory v2. The aggregate artifact is
 [`opd_ckpt30_multiseed_summary.json`](results/opd/final/opd_ckpt30_multiseed_summary.json).
 
 ### Independent SVAMP evaluation

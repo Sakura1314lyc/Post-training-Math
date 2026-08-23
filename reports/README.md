@@ -13,3 +13,6 @@
 - [`GRPO_EXPERIMENT_REPORT_zh.md`](GRPO_EXPERIMENT_REPORT_zh.md)：
   完整 GRPO 报告，包含原生 TRL 实现、8 GiB smoke、三随机种子训练、正式 GSM8K
   validation/test、SVAMP 泛化与 SFT/OPD 配对分析。
+- [`CONFIRMATORY_V2_PROTOCOL_zh.md`](CONFIRMATORY_V2_PROTOCOL_zh.md)：
+  针对单 SFT seed、开发集选择偏差、小训练预算、seed 混杂和 GRPO KL reference
+  问题的新一轮确认性实验协议。

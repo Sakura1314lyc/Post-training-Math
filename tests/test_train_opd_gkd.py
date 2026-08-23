@@ -166,6 +166,7 @@ class TrainOpdGkdTest(unittest.TestCase):
         self.assertEqual(config_kwargs["save_steps"], 10)
         self.assertEqual(config_kwargs["save_strategy"], "steps")
         self.assertEqual(config_kwargs["lmbda"], 1.0)
+        self.assertTrue(config_kwargs["disable_dropout"])
 
 
 if __name__ == "__main__":

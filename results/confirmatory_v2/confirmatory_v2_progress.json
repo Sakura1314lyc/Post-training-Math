@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "status": "in_progress",
+  "updated_on": "2026-08-23",
+  "protocol": "gsm8k_confirmatory_v2",
+  "base_model": "Qwen/Qwen2.5-Math-1.5B",
+  "split": {
+    "source": "data/confirmatory_v2/split_manifest.json",
+    "source_dataset_sha256": "c51b7d623d19ef929acefe5111354f8960b81949e0ffe05bd7f53ebd722535a2",
+    "manifest_sha256": "4762439d6ec4f21804179cd417a2946e9680afbfef61f4844c5953acfcabc0be",
+    "train": 6725,
+    "dev_select": 374,
+    "dev_audit": 374,
+    "partitions_disjoint": true,
+    "dev_audit_status": "sealed_unevaluated"
+  },
+  "sft": {
+    "training_examples": 6725,
+    "optimizer_steps": 841,
+    "epochs": 1.0,
+    "learning_rate": 0.00002,
+    "runs": [
+      {
+        "seed": 42,
+        "checkpoint": "outputs/confirmatory_v2/sft_seed42/checkpoint-841",
+        "adapter_sha256": "1a63f1e40f8e7299c45ed3df9fb0f6d4c72ac1f60ecad6c5642f8a339db6fea8",
+        "eval_loss": 0.5643884539604187,
+        "train_loss": null,
+        "train_loss_note": "The completed checkpoint is valid; a later automatic resume overwrote train_results.json with a zero-step summary."
+      },
+      {
+        "seed": 43,
+        "checkpoint": "outputs/confirmatory_v2/sft_seed43/checkpoint-841",
+        "adapter_sha256": "be0abeb6b27ca43ae11470938da04016fc25cec3def530ef965c8045030bd9d0",
+        "eval_loss": 0.5631357431411743,
+        "train_loss": 0.6891729631832182,
+        "train_runtime_seconds": 1079.0127
+      },
+      {
+        "seed": 44,
+        "checkpoint": "outputs/confirmatory_v2/sft_seed44/checkpoint-841",
+        "adapter_sha256": "c0547fc2baf9ee3079a70b6d10086e3592f7c396a0ba574e3dfb4b545f7beeaf",
+        "eval_loss": 0.5633705854415894,
+        "train_loss": 0.6894048304251627,
+        "train_runtime_seconds": 1071.4332
+      }
+    ],
+    "dev_select_generation": {
+      "num_samples": 374,
+      "evaluation_version": "gsm8k_numeric_v3",
+      "dataset_sha256": "56294656ac61bf26176d80a3af41c37c52ae7af32d6a7efcafed86e1cf2c1c4e",
+      "do_sample": false,
+      "max_new_tokens": 1024,
+      "stop_after_completed_answer_line": false,
+      "runs": [
+        {
+          "seed": 42,
+          "source": "results/confirmatory_v2/dev/sft_seed42_dev_select_v3.json",
+          "correct": 313,
+          "strict_correct": 313,
+          "format_compliant": 373,
+          "hit_max_new_tokens": 3,
+          "mean_generated_tokens": 96.82620320855615
+        },
+        {
+          "seed": 43,
+          "source": "results/confirmatory_v2/dev/sft_seed43_dev_select_v3.json",
+          "correct": 308,
+          "strict_correct": 307,
+          "format_compliant": 371,
+          "hit_max_new_tokens": 3,
+          "mean_generated_tokens": 96.22192513368984
+        },
+        {
+          "seed": 44,
+          "source": "results/confirmatory_v2/dev/sft_seed44_dev_select_v3.json",
+          "correct": 319,
+          "strict_correct": 319,
+          "format_compliant": 372,
+          "hit_max_new_tokens": 2,
+          "mean_generated_tokens": 93.38502673796792
+        }
+      ],
+      "accuracy_mean": 0.8377896613190731,
+      "accuracy_sample_sd": 0.014726124457984232,
+      "strict_accuracy_mean": 0.8368983957219251,
+      "strict_accuracy_sample_sd": 0.01604278074866311,
+      "format_compliance_mean": 0.9946524064171123,
+      "format_compliance_sample_sd": 0.002673796791443861,
+      "hit_max_new_tokens_mean": 0.007130124777183601,
+      "hit_max_new_tokens_sample_sd": 0.0015437172972984654,
+      "mean_generated_tokens": 95.47771836007131,
+      "mean_generated_tokens_sample_sd": 1.8373368408806539
+    },
+    "canonical_downstream_seed": 42,
+    "selection_rule": "Use the canonical seed-42 SFT policy; do not select the best dev_select seed."
+  },
+  "opd": {
+    "fixed_initial_policy": "outputs/confirmatory_v2/sft_seed42/checkpoint-841",
+    "fixed_data_seed": 42,
+    "optimizer_steps_per_run": 200,
+    "gradient_accumulation_steps": 4,
+    "on_policy_microbatches_per_run": 800,
+    "final_adapter_rule": "Use final step-200 adapter only; intermediate checkpoints are recovery artifacts.",
+    "runs": [
+      {
+        "training_seed": 42,
+        "generation_seed": 42,
+        "status": "training_complete_evaluation_pending",
+        "output": "outputs/confirmatory_v2/opd_data42_train42_gen42_steps200",
+        "final_adapter": "outputs/confirmatory_v2/opd_data42_train42_gen42_steps200/final_adapter",
+        "final_adapter_sha256": "736bf94547851146c815131a1d4a2a404703844c1a30300daf2152a883ae477f",
+        "run_manifest_sha256": "ad2c653aadced4e8431c6c54e959b8ec4f004d8c6aa5ce94a39f472e22e3eaf0",
+        "run_summary_sha256": "be7b15df42176969b3a72e155e278817b1bc1eb9815b12c149dff6bad1badd71",
+        "train_loss": 0.2869849579036236,
+        "train_runtime_seconds": 5925.1174,
+        "peak_allocated_gib": 6.863739013671875,
+        "tracked_parameter_max_abs_delta": 0.0010243430733680725,
+        "tracked_parameter_updated": true,
+        "metrics_finite": true
+      },
+      {
+        "training_seed": 43,
+        "generation_seed": 43,
+        "status": "pending"
+      },
+      {
+        "training_seed": 44,
+        "generation_seed": 44,
+        "status": "pending"
+      }
+    ]
+  },
+  "grpo": {
+    "status": "pending",
+    "required_policy_initialization": "merged_sft",
+    "required_kl_reference": "merged_sft_policy",
+    "optimizer_steps_per_run": 200,
+    "rollouts_per_run": 800
+  }
+}

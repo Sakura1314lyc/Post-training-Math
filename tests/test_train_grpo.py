@@ -10,11 +10,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from train_grpo import (  # noqa: E402
     GRPOConfig,
+    arithmetic_consistency_reward,
+    arithmetic_consistency_score,
     build_grpo_config_kwargs,
     build_grpo_records,
+    build_reward_spec,
     completion_to_text,
     ensure_trl_model_compatibility,
     numeric_accuracy_reward,
+    policy_reference_description,
     strict_format_reward,
     validate_args,
 )
@@ -36,6 +40,12 @@ class TrainGrpoTest(unittest.TestCase):
     def make_args(self, adapter: Path, dataset: Path, **overrides):
         values = {
             "adapter": adapter,
+            "base_model": "base-model",
+            "policy_initialization": "continued_adapter",
+            "merged_sft_model": None,
+            "lora_rank": 8,
+            "lora_alpha": 16,
+            "lora_target_modules": "q_proj,v_proj,lm_head",
             "dataset": dataset,
             "num_samples": 8,
             "all_training_samples": False,
@@ -51,12 +61,14 @@ class TrainGrpoTest(unittest.TestCase):
             "beta": 0.0,
             "accuracy_reward_weight": 1.0,
             "format_reward_weight": 0.1,
+            "arithmetic_consistency_reward_weight": 0.0,
             "mask_truncated_completions": True,
             "save_steps": 0,
             "save_total_limit": 5,
             "resume_from_checkpoint": None,
             "output_dir": Path("outputs/grpo/test"),
             "seed": 42,
+            "split_manifest": None,
         }
         values.update(overrides)
         return SimpleNamespace(**values)
@@ -91,6 +103,17 @@ class TrainGrpoTest(unittest.TestCase):
         )
         self.assertEqual(strict_format_reward(completions), [1.0, 1.0, 0.0])
 
+    def test_arithmetic_consistency_is_a_conservative_bonus(self):
+        self.assertEqual(arithmetic_consistency_score("2 + 3 = 5\n#### 5"), 1.0)
+        self.assertEqual(arithmetic_consistency_score("2 + 3 = 6\n#### 6"), 0.0)
+        self.assertEqual(arithmetic_consistency_score("Reasoning only\n#### 5"), 0.0)
+        self.assertEqual(
+            arithmetic_consistency_reward(
+                ["8 / 4 = 2\n#### 2", "8 / 4 = 3\n#### 3"]
+            ),
+            [1.0, 0.0],
+        )
+
     def test_model_compatibility_restores_warnings_dictionary(self):
         class ModelWithoutWarnings:
             pass
@@ -122,6 +145,19 @@ class TrainGrpoTest(unittest.TestCase):
                 )
             with self.assertRaisesRegex(ValueError, "Raw Base"):
                 validate_args(self.make_args(adapter, dataset, beta=0.01))
+            merged = root / "merged"
+            merged.mkdir()
+            merged_args = self.make_args(
+                adapter,
+                dataset,
+                policy_initialization="merged_sft",
+                merged_sft_model=merged,
+                beta=0.01,
+            )
+            validate_args(merged_args)
+            description = policy_reference_description(merged_args)
+            self.assertEqual(description["kl_reference"], "merged_sft_policy")
+            self.assertTrue(description["kl_reference_correct"])
 
     def test_grpo_config_kwargs_match_installed_trl(self):
         args = self.make_args(Path("adapter"), Path("dataset"))
@@ -130,6 +166,12 @@ class TrainGrpoTest(unittest.TestCase):
         self.assertEqual(set(kwargs) - supported, set())
         self.assertEqual(kwargs["reward_weights"], [1.0, 0.1])
         self.assertFalse(kwargs["use_vllm"])
+        self.assertTrue(kwargs["disable_dropout"])
+
+        args.arithmetic_consistency_reward_weight = 0.05
+        reward_functions, reward_weights = build_reward_spec(args)
+        self.assertEqual(len(reward_functions), 3)
+        self.assertEqual(reward_weights, [1.0, 0.1, 0.05])
 
 
 if __name__ == "__main__":

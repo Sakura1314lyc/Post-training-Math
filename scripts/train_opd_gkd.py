@@ -19,6 +19,13 @@ from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from trl import GKDConfig, GKDTrainer
 
+from experiment_protocol import (
+    load_split_manifest,
+    resolve_seed_args,
+    resolved_seed,
+    sha256_file,
+)
+
 
 DEFAULT_BASE_MODEL = "Qwen/Qwen2.5-Math-1.5B"
 DEFAULT_ADAPTER = Path("outputs/qwen25_math_15b_base_lora_sft_v7/checkpoint-888")
@@ -49,6 +56,14 @@ def parse_args() -> argparse.Namespace:
         help="Held-out fraction used by the SFT run; these samples are excluded.",
     )
     parser.add_argument("--split-seed", type=int, default=42)
+    parser.add_argument(
+        "--split-manifest",
+        type=Path,
+        help=(
+            "Frozen train/dev-select/dev-audit manifest. When provided, it "
+            "replaces --validation-size and --split-seed."
+        ),
+    )
     parser.add_argument("--max-steps", type=int, default=1)
     parser.add_argument("--max-length", type=int, default=512)
     parser.add_argument("--max-new-tokens", type=int, default=256)
@@ -85,7 +100,26 @@ def parse_args() -> argparse.Namespace:
         default=False,
     )
     parser.add_argument("--resume-from-checkpoint", type=Path)
-    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--seed",
+        type=int,
+        help="Deprecated shorthand that sets all three independent seeds.",
+    )
+    parser.add_argument(
+        "--data-seed",
+        type=int,
+        help="Controls which records are sampled from the frozen training partition.",
+    )
+    parser.add_argument(
+        "--training-seed",
+        type=int,
+        help="Controls trainer sampling and optimization initialization.",
+    )
+    parser.add_argument(
+        "--generation-seed",
+        type=int,
+        help="Controls stochastic on-policy rollout generation.",
+    )
     parser.add_argument(
         "--teacher-load-in-4bit",
         action=argparse.BooleanOptionalAction,
@@ -129,6 +163,9 @@ def validate_args(args: argparse.Namespace) -> None:
         raise FileNotFoundError(f"adapter directory does not exist: {args.adapter}")
     if not args.dataset.is_file():
         raise FileNotFoundError(f"dataset file does not exist: {args.dataset}")
+    split_manifest = getattr(args, "split_manifest", None)
+    if split_manifest is not None and not split_manifest.is_file():
+        raise FileNotFoundError(f"split manifest does not exist: {split_manifest}")
     if args.resume_from_checkpoint is not None and not args.resume_from_checkpoint.is_dir():
         raise FileNotFoundError(
             f"resume checkpoint does not exist: {args.resume_from_checkpoint}"
@@ -296,8 +333,9 @@ def build_gkd_config_kwargs(args: argparse.Namespace) -> dict:
         "report_to": "none",
         "dataloader_num_workers": 0,
         "dataloader_pin_memory": False,
-        "seed": args.seed,
-        "data_seed": args.seed,
+        "seed": resolved_seed(args, "training_seed"),
+        "data_seed": resolved_seed(args, "training_seed"),
+        "disable_dropout": True,
     }
 
 
@@ -308,6 +346,7 @@ def build_gkd_config(args: argparse.Namespace) -> GKDConfig:
 
 def main() -> None:
     args = parse_args()
+    resolve_seed_args(args)
     validate_args(args)
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is required for this OPD/GKD script")
@@ -321,24 +360,31 @@ def main() -> None:
                 "--use-liger-kernel requires the liger-kernel package"
             ) from error
 
-    random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    torch.cuda.manual_seed_all(args.seed)
+    random.seed(args.training_seed)
+    torch.manual_seed(args.training_seed)
+    torch.cuda.manual_seed_all(args.training_seed)
     torch.cuda.empty_cache()
     torch.cuda.reset_peak_memory_stats()
 
     print("Loading and converting OPD data...")
     records = load_records(args.dataset)
-    training_source_indices, validation_source_indices = split_source_indices(
-        len(records), args.validation_size, args.split_seed
-    )
+    if args.split_manifest is not None:
+        partitions = load_split_manifest(args.split_manifest, args.dataset, len(records))
+        training_source_indices = partitions["train"]
+        validation_source_indices = partitions["dev_select"]
+        audit_source_indices = partitions["dev_audit"]
+    else:
+        training_source_indices, validation_source_indices = split_source_indices(
+            len(records), args.validation_size, args.split_seed
+        )
+        audit_source_indices = []
     selected_sample_count = (
         len(training_source_indices) if args.all_training_samples else args.num_samples
     )
     conversational_records = build_conversational_records(
         records,
         selected_sample_count,
-        args.seed,
+        args.data_seed,
         candidate_source_indices=training_source_indices,
     )
     train_dataset = Dataset.from_list(conversational_records)
@@ -346,6 +392,8 @@ def main() -> None:
     validation_source_index_set = set(validation_source_indices)
     if any(index in validation_source_index_set for index in source_indices):
         raise RuntimeError("training data overlaps the fixed validation split")
+    if set(source_indices) & set(audit_source_indices):
+        raise RuntimeError("training data overlaps the frozen audit split")
     print(
         f"Dataset split: train={len(training_source_indices)}, "
         f"validation={len(validation_source_indices)}"
@@ -382,9 +430,15 @@ def main() -> None:
         "dataset_num_records": len(records),
         "validation_size": args.validation_size,
         "split_seed": args.split_seed,
+        "split_manifest": str(args.split_manifest) if args.split_manifest else None,
+        "split_manifest_sha256": (
+            sha256_file(args.split_manifest) if args.split_manifest else None
+        ),
         "training_split_size": len(training_source_indices),
         "validation_split_size": len(validation_source_indices),
         "validation_source_indices": validation_source_indices,
+        "audit_split_size": len(audit_source_indices),
+        "audit_source_indices": audit_source_indices,
         "selected_training_source_indices": source_indices,
         "num_samples": selected_sample_count,
         "max_steps": args.max_steps,
@@ -399,7 +453,11 @@ def main() -> None:
         "save_total_limit": args.save_total_limit,
         "save_final_adapter": args.save_final_adapter,
         "use_liger_kernel": args.use_liger_kernel,
-        "seed": args.seed,
+        "legacy_seed": args.seed,
+        "data_seed": args.data_seed,
+        "training_seed": args.training_seed,
+        "generation_seed": args.generation_seed,
+        "trainer_data_order_seed": args.training_seed,
         "resume_from_checkpoint": (
             str(args.resume_from_checkpoint)
             if args.resume_from_checkpoint is not None
@@ -477,6 +535,12 @@ def main() -> None:
     trainer.generation_config.eos_token_id = terminators
     trainer.generation_config.pad_token_id = tokenizer.pad_token_id
 
+    # Trainer construction consumes the training seed. Reset only the global
+    # generation RNG before on-policy sampling; dataset selection is already frozen.
+    random.seed(args.generation_seed)
+    torch.manual_seed(args.generation_seed)
+    torch.cuda.manual_seed_all(args.generation_seed)
+
     print(
         "Starting OPD/GKD training: "
         f"steps={args.max_steps}, lmbda={args.lmbda}, beta={args.beta}, "
@@ -528,9 +592,15 @@ def main() -> None:
         "dataset_num_records": len(records),
         "validation_size": args.validation_size,
         "split_seed": args.split_seed,
+        "split_manifest": str(args.split_manifest) if args.split_manifest else None,
+        "split_manifest_sha256": (
+            sha256_file(args.split_manifest) if args.split_manifest else None
+        ),
         "training_split_size": len(training_source_indices),
         "validation_split_size": len(validation_source_indices),
         "validation_source_indices": validation_source_indices,
+        "audit_split_size": len(audit_source_indices),
+        "audit_source_indices": audit_source_indices,
         "source_indices": source_indices,
         "num_samples": selected_sample_count,
         "max_steps": args.max_steps,
@@ -541,6 +611,11 @@ def main() -> None:
         "temperature": args.temperature,
         "lmbda": args.lmbda,
         "beta": args.beta,
+        "legacy_seed": args.seed,
+        "data_seed": args.data_seed,
+        "training_seed": args.training_seed,
+        "generation_seed": args.generation_seed,
+        "trainer_data_order_seed": args.training_seed,
         "eos_token_ids": terminators,
         "use_liger_kernel": args.use_liger_kernel,
         "save_steps": args.save_steps,

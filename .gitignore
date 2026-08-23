@@ -3,3 +3,8 @@ __pycache__/
 
 # Model checkpoints are large and should be stored as experiment artifacts.
 outputs/
+
+# Reproducible derived records stay local; protocol metadata remains trackable.
+data/confirmatory_v2/*
+!data/confirmatory_v2/split_manifest.json
+!data/confirmatory_v2/dataset_info.json

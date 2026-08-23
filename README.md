@@ -14,6 +14,17 @@
 [SVAMP 泛化报告](reports/SVAMP_EXPERIMENT_REPORT_zh.md)，GRPO 完整分析见
 [GRPO 中文报告](reports/GRPO_EXPERIMENT_REPORT_zh.md)。
 
+针对旧实验的单 SFT seed、validation 反复查看、OPD/GRPO 小预算、seed 混杂和
+GRPO KL reference 限制，仓库已新增一套与旧结论分开的
+[confirmatory v2 修正协议](reports/CONFIRMATORY_V2_PROTOCOL_zh.md)；具体配置和命令见
+[`configs/confirmatory/`](configs/confirmatory/README.md)。在 v2 结果完成前，下表仍只代表
+已经完成的探索性实验。
+
+Confirmatory v2 当前进度：三组 SFT 已完成，dev-select 准确率为
+`83.78% ± 1.47 pp`；第一组固定数据 seed 的 200-step OPD 训练已经完成、评测待继续。
+阶段性机器可读汇总见
+[`results/confirmatory_v2/confirmatory_v2_progress.json`](results/confirmatory_v2/confirmatory_v2_progress.json)。
+
 ## 最终结果
 
 | GSM8K 官方 test（1,319 题） | Raw Base | SFT v7 | OPD 三次均值 ± SD | GRPO 三次均值 ± SD |
@@ -188,9 +199,10 @@ python scripts/eval_sft_adapter.py \
   --output results/opd/final/test_gsm8k_gkd_pilot50_ckpt30_v3.json
 ```
 
-seed 43/44 使用完全相同的超参数和固定 checkpoint-30。当前 `--seed` 同时控制
-256 条训练样本的抽取与训练随机性，因此这里报告的是端到端运行波动，而不是固定数据
-下的纯训练 seed 波动。三次汇总见
+seed 43/44 使用完全相同的超参数和固定 checkpoint-30。历史实验使用的旧 `--seed`
+同时控制 256 条训练样本抽取与训练随机性，因此这里只能报告端到端运行波动，而不是
+固定数据下的纯训练 seed 波动。新脚本已经提供 `--data-seed`、`--training-seed` 和
+`--generation-seed` 三个独立参数供 confirmatory v2 使用。三次历史结果汇总见
 [`opd_ckpt30_multiseed_summary.json`](results/opd/final/opd_ckpt30_multiseed_summary.json)。
 
 ### 6. 独立 SVAMP 泛化评测
