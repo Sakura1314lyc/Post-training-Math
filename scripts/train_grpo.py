@@ -750,6 +750,7 @@ def main() -> None:
         "tracked_parameter_updated": parameter_updated,
         "metrics_are_finite": metrics_are_finite,
         "metrics": train_result.metrics,
+        "trainer_log_history": trainer.state.log_history,
         "memory_after_load": memory_after_load,
         "memory_after_train": memory_after_train,
         "trl_transformers_model_attributes_patched": patched_model_attributes,

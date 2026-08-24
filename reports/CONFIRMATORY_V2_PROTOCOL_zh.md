@@ -71,16 +71,67 @@ OPD 和 GRPO 现在分别记录并控制：
 
 完整命令见 `configs/confirmatory/README.md`。
 
-## 当前进度（2026-08-23）
+## 当前进度（2026-08-24）
 
 - 已冻结 6725/374/374 的 train/dev-select/dev-audit 切分，三者互斥且覆盖全部
   7473 条数据；audit 仍未评测。
 - SFT seed 42/43/44 均完成 1 epoch、841 steps。dev-select 数值准确率分别为
   83.69%、82.35%、85.29%，均值为 **83.78% ± 1.47 pp**（样本 SD）。
 - 后续固定使用规范 seed 42 作为共同 SFT 起点，不选择 dev-select 最好的 seed 44。
-- OPD data42/train42/gen42 已完成 200 steps / 800 on-policy microbatches；训练耗时
-  5925 秒，峰值显存 6.86 GiB，最终参数已更新且指标有限。其 dev-select 评测和另外
-  两个训练 seed 留待后续完成。
+- OPD 固定 data seed 42、分别使用 train/generation seed 42/43/44，三组均已完成
+  200 steps / 800 on-policy microbatches。训练 loss 均值为 0.2847，样本 SD 为
+  0.0023；单次耗时约 98.6--119.1 分钟。
+- 三组 OPD 的 dev-select 数值准确率分别为 81.28%、83.69%、83.42%，均值为
+  **82.80% ± 1.32 pp**。相对固定 SFT seed 42（83.69%），没有形成稳定提升；三组
+  McNemar 双侧精确检验 p 值分别为 0.281、1.000、1.000。
+- 更重要的是，这套 200-step OPD 配置出现明显输出行为退化：严格 `####` 准确率均值仅
+  **1.25%**，格式合规率均值仅 **2.58%**，平均 **30.93%** 的回答达到 1024-token
+  上限，平均生成长度由 SFT 的 96 tokens 左右升至 428 tokens。因而该 OPD 配置不能
+  作为可部署改进，也没有理由进入封存的 audit；这一负结果将如实保留。
+- 下一阶段按冻结协议运行带有效 SFT KL reference 的 GRPO。`dev_audit` 继续保持未评测。
+- 规范 SFT seed 42 已通过 `merge_and_unload(safe_merge=True)` 合并为独立 BF16 policy；
+  合并目录不含残留 adapter，后续在其上新建 GRPO LoRA。这样关闭新 LoRA 时得到的是固定
+  SFT policy，可作为 `beta>0` 的有效 KL reference。
+- GRPO 二次 smoke 已确认：两步奖励标准差均非零，第二步 KL 为 0.000162，LoRA 参数发生
+  更新，指标有限，峰值显存 3.59 GiB。随机 rollout 的 256-token 截断比例仍偏高，正式
+  训练继续启用 truncated-completion masking，并将截断比例作为必须报告的诊断指标。
+- 正式 GRPO data42/train42/gen42 已完成 200 steps / 800 rollouts，耗时 1898 秒，峰值
+  显存 3.60 GiB，参数变化 0.000607。平均 reward 为 0.495、平均 KL 为 0.000274，全部
+  step 的奖励方差均非零；平均截断率为 45.63%，已由 masking 排除截断 completion 的
+  token loss。四个 50-step 阶段未呈现持续发散，但最终判断仍以固定 dev-select 评测为准。
+- 该 seed42 最终 adapter 在 dev-select 上取得 296/374（79.14%），低于共同 SFT 起点的
+  313/374（83.69%）4.55 pp。逐题转移为 28 个 SFT-correct→GRPO-wrong、11 个
+  SFT-wrong→GRPO-correct，McNemar 双侧精确检验 `p=0.00948`，构成显著负向结果。
+  格式合规率仍有 95.72%，但评测截断率升至 4.55%。协议要求继续完成 seed43/44，不依据
+  单个 seed 修改超参数或选择结果；audit 仍保持封存。
+- 正式 GRPO data42/train43/gen43 也已完成 200 steps / 800 rollouts：训练耗时
+  1864 秒，train loss 为 -0.0825，平均 reward 0.540、平均 KL 0.000288，参数变化
+  0.000472，峰值显存 3.60 GiB；平均 rollout 截断率为 42.13%。其固定 dev-select
+  评测为 292/374（78.07%），相对共同 SFT 起点下降 5.61 pp。逐题转移为 32 个
+  SFT-correct→GRPO-wrong、11 个反向改善，McNemar `p=0.00191`；评测格式合规率
+  95.19%，截断率 5.35%。前两个训练 seed 均为显著负向结果，但仍按冻结协议完成 seed44。
+- 正式 GRPO data42/train44/gen44 已完成 200 steps / 800 rollouts：训练耗时
+  1871 秒，train loss -0.0845，平均 reward 0.505、平均 KL 0.000346，参数变化
+  0.000547，峰值显存 3.60 GiB，平均 rollout 截断率 45.13%。至此三个正式训练 seed
+  全部完成；训练耗时均值为 1878 ± 18 秒，平均 KL 为 0.000303，rollout 截断率均值为
+  44.29%。seed44 的 dev-select 为 294/374（78.61%），相对共同 SFT 起点下降
+  5.08 pp；配对转移为 30 个退化、11 个改善，McNemar `p=0.00432`。
+
+### Dev-select 阶段结论
+
+| 方法 | 数值准确率 | 严格准确率 | 格式合规率 | 达到 1024-token 上限 | 平均生成 tokens |
+|---|---:|---:|---:|---:|---:|
+| 规范 SFT seed42 | 83.69% | 83.69% | 99.73% | 0.80% | 96.83 |
+| OPD 三 seed 均值 ± SD | 82.80% ± 1.32 | 1.25% ± 0.15 | 2.58% ± 0.15 | 30.93% ± 2.48 | 427.97 ± 22.38 |
+| GRPO 三 seed 均值 ± SD | 78.61% ± 0.53 | 77.90% ± 0.67 | 95.72% ± 0.53 | 4.63% ± 0.67 | 138.49 ± 5.97 |
+
+确认性结果不支持将 OPD 或 GRPO 作为 SFT 的改进：OPD 的宽松数值准确率接近 SFT，
+但输出格式和终止行为崩坏；GRPO 保留了大部分格式能力，却在三个 seed 上分别下降
+4.55、5.61、5.08 pp，且三次 McNemar 检验均显著。两种方法均在进入 audit 前被拒绝，
+不能选择其中“最好的一次”规避负结果。
+
+`dev_audit` 到今天结束时仍完全封存。若研究任务需要一个最终无偏 SFT 点估计，下一阶段
+只允许对预先指定的规范 SFT seed42 执行一次 audit；已拒绝的 OPD/GRPO 不再消耗 audit。
 
 精确指标、路径及 SHA-256 见
 `results/confirmatory_v2/confirmatory_v2_progress.json`。

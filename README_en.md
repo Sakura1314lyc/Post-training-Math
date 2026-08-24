@@ -21,11 +21,15 @@ A separate [confirmatory v2 protocol](reports/CONFIRMATORY_V2_PROTOCOL_zh.md)
 now addresses the single SFT seed, repeated validation inspection, small
 OPD/GRPO budgets, confounded seeds, and the GRPO KL-reference limitation. Its
 configs and commands are in [`configs/confirmatory/`](configs/confirmatory/README.md).
-Until those runs are complete, the table below remains exploratory evidence.
+The table below remains evidence from the earlier exploratory study and must
+not be mixed with the confirmatory results.
 
-Current confirmatory-v2 progress: all three SFT runs are complete with
-`83.78% ± 1.47 pp` dev-select accuracy, and the first fixed-data 200-step OPD
-run has completed training. The tracked interim summary is
+The confirmatory-v2 dev-select stage is complete. Three-seed SFT accuracy is
+`83.78% ± 1.47 pp`. OPD reaches `82.80% ± 1.32 pp` but collapses to `2.58%`
+format compliance. GRPO with the correct SFT KL reference reaches
+`78.61% ± 0.53 pp`; all three runs are significantly worse than canonical
+SFT seed42. OPD and GRPO are therefore rejected before audit, while
+`dev_audit` remains sealed. The machine-readable summary is
 [`results/confirmatory_v2/confirmatory_v2_progress.json`](results/confirmatory_v2/confirmatory_v2_progress.json).
 
 ## Final result

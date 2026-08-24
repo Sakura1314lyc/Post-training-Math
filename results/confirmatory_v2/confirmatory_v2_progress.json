@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "status": "in_progress",
-  "updated_on": "2026-08-23",
+  "status": "dev_select_complete_audit_sealed",
+  "updated_on": "2026-08-24",
   "protocol": "gsm8k_confirmatory_v2",
   "base_model": "Qwen/Qwen2.5-Math-1.5B",
   "split": {
@@ -106,7 +106,7 @@
       {
         "training_seed": 42,
         "generation_seed": 42,
-        "status": "training_complete_evaluation_pending",
+        "status": "dev_select_evaluation_complete",
         "output": "outputs/confirmatory_v2/opd_data42_train42_gen42_steps200",
         "final_adapter": "outputs/confirmatory_v2/opd_data42_train42_gen42_steps200/final_adapter",
         "final_adapter_sha256": "736bf94547851146c815131a1d4a2a404703844c1a30300daf2152a883ae477f",
@@ -122,20 +122,308 @@
       {
         "training_seed": 43,
         "generation_seed": 43,
-        "status": "pending"
+        "status": "dev_select_evaluation_complete",
+        "output": "outputs/confirmatory_v2/opd_data42_train43_gen43_steps200",
+        "final_adapter": "outputs/confirmatory_v2/opd_data42_train43_gen43_steps200/final_adapter",
+        "final_adapter_sha256": "3a5f479d9ed1054fbdf6da74f00b8c63a76c0a3342e83c911a7c4dd6d63eff98",
+        "run_manifest_sha256": "7a6c5aab2a1037825dc88913beafdbcaf9fab24cbf9982144a1eda35604677d1",
+        "run_summary_sha256": "e701868a63d53215b4109d54386a8cf61131e4b4dbf542ed0c97184ccc37b128",
+        "train_loss": 0.28468165040016175,
+        "train_runtime_seconds": 5916.6096,
+        "peak_allocated_gib": 6.87214469909668,
+        "tracked_parameter_max_abs_delta": 0.0009921565651893616,
+        "tracked_parameter_updated": true,
+        "metrics_finite": true
       },
       {
         "training_seed": 44,
         "generation_seed": 44,
-        "status": "pending"
+        "status": "dev_select_evaluation_complete",
+        "output": "outputs/confirmatory_v2/opd_data42_train44_gen44_steps200",
+        "final_adapter": "outputs/confirmatory_v2/opd_data42_train44_gen44_steps200/final_adapter",
+        "final_adapter_sha256": "5aa18d701f24eb4f898ea4fe16373e2f1d7c9e334ea0f77b7496b80b1db81b02",
+        "run_manifest_sha256": "acff6cd0dba7a3d3762ffd2a8032600914fa52f9276fdbeda247375039cd7557",
+        "run_summary_sha256": "fcfa1507e19b2e6d28680dbcfcac596d5c2aab3b08aa9151f02e4ce81ab825d1",
+        "train_loss": 0.28241346031427383,
+        "train_runtime_seconds": 7146.1035,
+        "peak_allocated_gib": 6.782293796539307,
+        "tracked_parameter_max_abs_delta": 0.0010037040337920189,
+        "tracked_parameter_updated": true,
+        "metrics_finite": true
       }
-    ]
+    ],
+    "training_aggregate": {
+      "train_loss_mean": 0.2846933562060197,
+      "train_loss_sample_sd": 0.002285771302638661,
+      "train_runtime_seconds_mean": 6329.276833333333,
+      "train_runtime_seconds_sample_sd": 707.4054146382746
+    },
+    "dev_select_generation": {
+      "num_samples": 374,
+      "evaluation_version": "gsm8k_numeric_v3",
+      "dataset_sha256": "56294656ac61bf26176d80a3af41c37c52ae7af32d6a7efcafed86e1cf2c1c4e",
+      "do_sample": false,
+      "max_new_tokens": 1024,
+      "stop_after_completed_answer_line": false,
+      "comparison_policy": "outputs/confirmatory_v2/sft_seed42/checkpoint-841",
+      "runs": [
+        {
+          "training_seed": 42,
+          "generation_seed": 42,
+          "source": "results/confirmatory_v2/dev/opd_data42_train42_gen42_step200_dev_select_v3.json",
+          "source_sha256": "f060df109e685170098330445470db7edf248efcfa4b6601903a80cbb1b4d166",
+          "correct": 304,
+          "strict_correct": 5,
+          "format_compliant": 9,
+          "hit_max_new_tokens": 120,
+          "mean_generated_tokens": 440.77807486631013,
+          "sft_correct_to_opd_wrong": 32,
+          "sft_wrong_to_opd_correct": 23,
+          "mcnemar_exact_two_sided_p": 0.2806097176983542
+        },
+        {
+          "training_seed": 43,
+          "generation_seed": 43,
+          "source": "results/confirmatory_v2/dev/opd_data42_train43_gen43_step200_dev_select_v3.json",
+          "source_sha256": "2859dd829d131edc3103dbf8b1417ea082f7be8d9339fe8909e836f0cda59e7a",
+          "correct": 313,
+          "strict_correct": 4,
+          "format_compliant": 10,
+          "hit_max_new_tokens": 122,
+          "mean_generated_tokens": 441.0,
+          "sft_correct_to_opd_wrong": 28,
+          "sft_wrong_to_opd_correct": 28,
+          "mcnemar_exact_two_sided_p": 1.0
+        },
+        {
+          "training_seed": 44,
+          "generation_seed": 44,
+          "source": "results/confirmatory_v2/dev/opd_data42_train44_gen44_step200_dev_select_v3.json",
+          "source_sha256": "dca48a9afae23d357066159e9399f9bdbd75a090ee389f0c499f1e4aee3f51f5",
+          "correct": 312,
+          "strict_correct": 5,
+          "format_compliant": 10,
+          "hit_max_new_tokens": 105,
+          "mean_generated_tokens": 402.120320855615,
+          "sft_correct_to_opd_wrong": 25,
+          "sft_wrong_to_opd_correct": 24,
+          "mcnemar_exact_two_sided_p": 1.0
+        }
+      ],
+      "accuracy_mean": 0.8279857397504456,
+      "accuracy_sample_sd": 0.01318952636982954,
+      "strict_accuracy_mean": 0.012477718360071302,
+      "strict_accuracy_sample_sd": 0.0015437172972984645,
+      "format_compliance_mean": 0.025846702317290553,
+      "format_compliance_sample_sd": 0.0015437172972984656,
+      "hit_max_new_tokens_mean": 0.3092691622103387,
+      "hit_max_new_tokens_sample_sd": 0.02484377992330033,
+      "mean_generated_tokens": 427.96613190730835,
+      "mean_generated_tokens_sample_sd": 22.383403994502668,
+      "interpretation": "Numeric accuracy is near the canonical SFT run, but strict answer formatting collapsed and roughly 31% of responses hit the 1024-token cap. Treat this OPD configuration as confirmatory evidence of output-behavior regression, not as a deployable improvement."
+    }
   },
   "grpo": {
-    "status": "pending",
+    "status": "dev_select_evaluation_complete",
     "required_policy_initialization": "merged_sft",
     "required_kl_reference": "merged_sft_policy",
+    "merged_sft_reference": {
+      "source_adapter": "outputs/confirmatory_v2/sft_seed42/checkpoint-841",
+      "path": "outputs/confirmatory_v2/merged_sft_seed42",
+      "merge_method": "PeftModel.merge_and_unload(safe_merge=True)",
+      "dtype": "bfloat16",
+      "model_weights_sha256": "0c3befdd430abc1c686918b45611dc2589eb5197069db232b23bb82c84f8e9fb",
+      "merge_manifest_sha256": "108b4eb1239e6cd24ecdec74d17cca1afd270141886baba6e9f09d6b1603cfd7"
+    },
+    "smoke": {
+      "source": "outputs/confirmatory_v2/grpo_kl_smoke_v2/grpo_run_summary.json",
+      "source_sha256": "2fc1476a6f9d0d7edc1ae0da2b2e7f7d1e7a9f94cecbc588ed5de99b30927bb0",
+      "run_manifest_sha256": "37ac3146ef4e4dca93645675c8c4d571c894f6f96f8bc47038db44f77dd310e4",
+      "policy_initialization": "merged_sft",
+      "kl_reference": "merged_sft_policy",
+      "kl_reference_correct": true,
+      "beta": 0.04,
+      "optimizer_steps": 2,
+      "train_loss": -0.1911814734339714,
+      "tracked_parameter_max_abs_delta": 0.0000036247074604034424,
+      "tracked_parameter_updated": true,
+      "metrics_finite": true,
+      "peak_allocated_gib": 3.589657783508301,
+      "reward_std_by_step": [
+        0.5,
+        0.5603198409080505
+      ],
+      "kl_by_step": [
+        0.0,
+        0.00016212328409892507
+      ],
+      "completion_clipped_ratio_by_step": [
+        0.75,
+        0.5
+      ],
+      "interpretation": "The merged-SFT KL reference, nonzero reward variance, KL term, finite metrics, parameter update, and memory headroom were all confirmed. Formal training may proceed; retain truncated-completion masking and report clipping."
+    },
     "optimizer_steps_per_run": 200,
-    "rollouts_per_run": 800
+    "rollouts_per_run": 800,
+    "runs": [
+      {
+        "training_seed": 42,
+        "generation_seed": 42,
+        "status": "dev_select_evaluation_complete",
+        "output": "outputs/confirmatory_v2/grpo_data42_train42_gen42_steps200",
+        "final_adapter": "outputs/confirmatory_v2/grpo_data42_train42_gen42_steps200/final_adapter",
+        "final_adapter_sha256": "599d374710d6f37eca711beaab0991511aa3e5cfe79ecbd50b0eba2263df4f4b",
+        "run_manifest_sha256": "0b9972928eeba38ca0169270e66b4a9017a36bcde7b2d7a107663aae8fbb6e03",
+        "run_summary_sha256": "c0972eabd5adb0134c23f2739ac6ab08d47681371af8aea0a41f2c09cbed8c03",
+        "train_loss": -0.06429713531397283,
+        "train_runtime_seconds": 1897.5787,
+        "peak_allocated_gib": 3.595212936401367,
+        "tracked_parameter_max_abs_delta": 0.0006067161448299885,
+        "tracked_parameter_updated": true,
+        "metrics_finite": true,
+        "mean_reward": 0.4954374960390851,
+        "mean_reward_std": 0.4085163865238428,
+        "mean_kl": 0.00027432148368916387,
+        "mean_completion_clipped_ratio": 0.45625,
+        "zero_gradient_steps": 7,
+        "fully_clipped_steps": 7,
+        "dev_select": {
+          "source": "results/confirmatory_v2/dev/grpo_data42_train42_gen42_step200_dev_select_v3.json",
+          "source_sha256": "4f25bab32994815cdcc3823bfc14d7e823a55955e8bfc48ce24138990f89d7b6",
+          "correct": 296,
+          "strict_correct": 294,
+          "format_compliant": 358,
+          "hit_max_new_tokens": 17,
+          "mean_generated_tokens": 137.47860962566844,
+          "sft_correct_to_grpo_wrong": 28,
+          "sft_wrong_to_grpo_correct": 11,
+          "accuracy_delta_pp": -4.545454545454541,
+          "mcnemar_exact_two_sided_p": 0.009475304279476404
+        }
+      },
+      {
+        "training_seed": 43,
+        "generation_seed": 43,
+        "status": "dev_select_evaluation_complete",
+        "output": "outputs/confirmatory_v2/grpo_data42_train43_gen43_steps200",
+        "final_adapter": "outputs/confirmatory_v2/grpo_data42_train43_gen43_steps200/final_adapter",
+        "final_adapter_sha256": "c172d45f6682fd746420ab525615ddeb35a500d8a3e6afca4076262e83ff33d3",
+        "run_manifest_sha256": "6ae195db2c681b870ea3f5ceb324adc672782117c505dd72558ce40b779c1ca3",
+        "run_summary_sha256": "229dcf83a843f916973efd27594e43803ecc21e96ff661b73c8c0ac1a02935ff",
+        "train_loss": -0.0824890398606658,
+        "train_runtime_seconds": 1863.5685,
+        "peak_allocated_gib": 3.5961074829101562,
+        "tracked_parameter_max_abs_delta": 0.00047187507152557373,
+        "tracked_parameter_updated": true,
+        "metrics_finite": true,
+        "mean_reward": 0.5404374932590872,
+        "mean_reward_std": 0.459003187213093,
+        "mean_kl": 0.00028799444658943684,
+        "mean_completion_clipped_ratio": 0.42125,
+        "zero_gradient_steps": 5,
+        "fully_clipped_steps": 5,
+        "dev_select": {
+          "source": "results/confirmatory_v2/dev/grpo_data42_train43_gen43_step200_dev_select_v3.json",
+          "source_sha256": "cb44b1a44eeffc4d8509fc2b83d38252f816897fb4de75c614e467d0de52ecf5",
+          "correct": 292,
+          "strict_correct": 289,
+          "format_compliant": 356,
+          "hit_max_new_tokens": 20,
+          "mean_generated_tokens": 144.90374331550802,
+          "sft_correct_to_grpo_wrong": 32,
+          "sft_wrong_to_grpo_correct": 11,
+          "accuracy_delta_pp": -5.614973262032086,
+          "mcnemar_exact_two_sided_p": 0.001913961001264397
+        }
+      },
+      {
+        "training_seed": 44,
+        "generation_seed": 44,
+        "status": "dev_select_evaluation_complete",
+        "output": "outputs/confirmatory_v2/grpo_data42_train44_gen44_steps200",
+        "final_adapter": "outputs/confirmatory_v2/grpo_data42_train44_gen44_steps200/final_adapter",
+        "final_adapter_sha256": "22d1cf9200a31fdcc09724fb8f4713845e680d5f8862f69a421ee883de9b982f",
+        "run_manifest_sha256": "5999e71434da884f20695d14ff551c22d6dc4e50a5f62d0d50de6ef22dafde7c",
+        "run_summary_sha256": "fba38893993bd65fe9e49dc154083d43fac7e4a9dde14dc0b62242ae2965a376",
+        "train_loss": -0.08454093120856214,
+        "train_runtime_seconds": 1871.4,
+        "peak_allocated_gib": 3.597154140472412,
+        "tracked_parameter_max_abs_delta": 0.0005471585318446159,
+        "tracked_parameter_updated": true,
+        "metrics_finite": true,
+        "mean_reward": 0.5051249953079968,
+        "mean_reward_std": 0.4095057107321918,
+        "mean_kl": 0.00034585843713102804,
+        "mean_completion_clipped_ratio": 0.45125,
+        "zero_gradient_steps": 5,
+        "fully_clipped_steps": 5,
+        "zero_reward_std_steps": 3,
+        "dev_select": {
+          "source": "results/confirmatory_v2/dev/grpo_data42_train44_gen44_step200_dev_select_v3.json",
+          "source_sha256": "5d0887533a2177642851a8e88860a863927675f31d9dad548b750ec8d00dec20",
+          "correct": 294,
+          "strict_correct": 291,
+          "format_compliant": 360,
+          "hit_max_new_tokens": 15,
+          "mean_generated_tokens": 133.0855614973262,
+          "sft_correct_to_grpo_wrong": 30,
+          "sft_wrong_to_grpo_correct": 11,
+          "accuracy_delta_pp": -5.080213903743314,
+          "mcnemar_exact_two_sided_p": 0.00432400493446039
+        }
+      }
+    ],
+    "training_aggregate": {
+      "train_loss_mean": -0.07710903546106693,
+      "train_loss_sample_sd": 0.011142762384625514,
+      "train_runtime_seconds_mean": 1877.5157333333334,
+      "train_runtime_seconds_sample_sd": 17.810813335255975,
+      "tracked_parameter_max_abs_delta_mean": 0.0005419165827333927,
+      "tracked_parameter_max_abs_delta_sample_sd": 0.00006757319946054892,
+      "mean_reward": 0.5136666615353898,
+      "mean_reward_sample_sd": 0.023684804915919976,
+      "mean_kl": 0.00030272478913654293,
+      "mean_kl_sample_sd": 0.00003797527051387749,
+      "mean_completion_clipped_ratio": 0.4429166666666667,
+      "mean_completion_clipped_ratio_sample_sd": 0.018929694486000896
+    },
+    "dev_select_generation": {
+      "num_samples": 374,
+      "evaluation_version": "gsm8k_numeric_v3",
+      "dataset_sha256": "56294656ac61bf26176d80a3af41c37c52ae7af32d6a7efcafed86e1cf2c1c4e",
+      "do_sample": false,
+      "max_new_tokens": 1024,
+      "stop_after_completed_answer_line": false,
+      "comparison_policy": "outputs/confirmatory_v2/sft_seed42/checkpoint-841",
+      "accuracy_mean": 0.786096256684492,
+      "accuracy_sample_sd": 0.005347593582887722,
+      "strict_accuracy_mean": 0.7789661319073083,
+      "strict_accuracy_sample_sd": 0.0067289076963197685,
+      "format_compliance_mean": 0.9572192513368984,
+      "format_compliance_sample_sd": 0.005347593582887666,
+      "hit_max_new_tokens_mean": 0.04634581105169341,
+      "hit_max_new_tokens_sample_sd": 0.00672890769631974,
+      "mean_generated_tokens": 138.48930481283423,
+      "mean_generated_tokens_sample_sd": 5.973565429701164,
+      "accuracy_delta_vs_canonical_sft_mean": -0.050802139037433136,
+      "accuracy_delta_vs_canonical_sft_sample_sd": 0.005347593582887722,
+      "mcnemar_exact_two_sided_p_by_seed": {
+        "42": 0.009475304279476404,
+        "43": 0.001913961001264397,
+        "44": 0.00432400493446039
+      },
+      "interpretation": "All three GRPO runs are significantly worse than the canonical SFT policy on dev_select. The configuration is rejected before audit."
+    }
+  },
+  "audit_selection": {
+    "status": "sealed_pending_canonical_sft_decision",
+    "eligible": [
+      "outputs/confirmatory_v2/sft_seed42/checkpoint-841"
+    ],
+    "rejected_before_audit": {
+      "opd": "Severe strict-format and termination regression despite similar relaxed numerical accuracy.",
+      "grpo": "All three seeds significantly reduced dev_select numerical accuracy relative to canonical SFT."
+    },
+    "rule": "Do not evaluate rejected OPD/GRPO configurations on dev_audit. If the study requires one final unbiased SFT estimate, evaluate only the predeclared canonical SFT seed42 once in a later session."
   }
 }
