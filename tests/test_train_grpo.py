@@ -5,6 +5,8 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
+import torch
+
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
@@ -19,7 +21,9 @@ from train_grpo import (  # noqa: E402
     ensure_trl_model_compatibility,
     numeric_accuracy_reward,
     policy_reference_description,
+    snapshot_trainable_parameters,
     strict_format_reward,
+    summarize_trainable_parameter_drift,
     validate_args,
 )
 
@@ -125,6 +129,51 @@ class TrainGrpoTest(unittest.TestCase):
         )
         self.assertEqual(model.warnings_issued, {})
         self.assertEqual(ensure_trl_model_compatibility(model), [])
+
+    def test_trainable_parameter_drift_covers_all_lora_groups(self):
+        q_a = torch.nn.Parameter(torch.tensor([[1.0, 2.0]]))
+        q_b = torch.nn.Parameter(torch.tensor([[0.0], [0.0]]))
+        lm_b = torch.nn.Parameter(torch.tensor([[0.0, 0.0]]))
+        parameters = [
+            (
+                "base_model.model.layers.0.q_proj.lora_A.default.weight",
+                q_a,
+            ),
+            (
+                "base_model.model.layers.0.q_proj.lora_B.default.weight",
+                q_b,
+            ),
+            ("base_model.model.lm_head.lora_B.default.weight", lm_b),
+        ]
+        snapshots = snapshot_trainable_parameters(parameters)
+        with torch.no_grad():
+            q_a.add_(torch.tensor([[0.5, 0.0]]))
+            q_b.add_(torch.tensor([[0.25], [-0.25]]))
+
+        summary = summarize_trainable_parameter_drift(parameters, snapshots)
+        self.assertEqual(summary["all"]["tensor_count"], 3)
+        self.assertEqual(summary["all"]["parameter_count"], 6)
+        self.assertEqual(summary["all"]["updated_tensor_count"], 2)
+        self.assertAlmostEqual(summary["all"]["max_abs_delta"], 0.5)
+        self.assertEqual(set(summary["by_lora_matrix"]), {"lora_A", "lora_B"})
+        self.assertEqual(set(summary["by_target_module"]), {"lm_head", "q_proj"})
+        self.assertEqual(
+            summary["by_target_and_matrix"]["lm_head.lora_B"][
+                "updated_tensor_count"
+            ],
+            0,
+        )
+        self.assertIsNone(
+            summary["by_target_and_matrix"]["q_proj.lora_B"][
+                "relative_l2_delta"
+            ]
+        )
+
+    def test_trainable_parameter_drift_rejects_name_changes(self):
+        parameter = torch.nn.Parameter(torch.tensor([1.0]))
+        snapshots = snapshot_trainable_parameters([("before", parameter)])
+        with self.assertRaisesRegex(ValueError, "names changed"):
+            summarize_trainable_parameter_drift([("after", parameter)], snapshots)
 
     def test_validate_args_checks_group_batch_and_reference(self):
         with tempfile.TemporaryDirectory() as temp_dir:

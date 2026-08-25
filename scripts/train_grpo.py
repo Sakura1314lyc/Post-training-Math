@@ -418,6 +418,131 @@ def parse_lora_target_modules(value: str) -> list[str]:
     return modules
 
 
+def snapshot_trainable_parameters(
+    trainable_parameters: list[tuple[str, torch.nn.Parameter]],
+) -> dict[str, torch.Tensor]:
+    """Copy every trainable tensor to CPU for post-training drift diagnostics."""
+    snapshots = {}
+    for name, parameter in trainable_parameters:
+        if name in snapshots:
+            raise ValueError(f"duplicate trainable parameter name: {name}")
+        snapshots[name] = parameter.detach().float().cpu().clone()
+    if not snapshots:
+        raise ValueError("cannot snapshot an empty trainable parameter list")
+    return snapshots
+
+
+def classify_trainable_parameter(name: str) -> tuple[str, str]:
+    """Return the target module and LoRA matrix family encoded in a PEFT name."""
+    match = re.search(r"\.([^.]+)\.(lora_[AB])(?:\.|$)", name)
+    if match is None:
+        return "other", "other"
+    return match.group(1), match.group(2)
+
+
+def summarize_trainable_parameter_drift(
+    trainable_parameters: list[tuple[str, torch.nn.Parameter]],
+    snapshots: dict[str, torch.Tensor],
+) -> dict[str, Any]:
+    """Summarize parameter changes globally and by target/LoRA matrix family."""
+    current_names = {name for name, _ in trainable_parameters}
+    snapshot_names = set(snapshots)
+    if current_names != snapshot_names:
+        raise ValueError(
+            "trainable parameter names changed during training: "
+            f"missing={sorted(snapshot_names - current_names)}, "
+            f"unexpected={sorted(current_names - snapshot_names)}"
+        )
+
+    accumulators: dict[str, dict[str, float | int]] = {}
+
+    def update(group: str, before: torch.Tensor, after: torch.Tensor) -> None:
+        delta = after - before
+        absolute_delta = delta.abs()
+        maximum = float(absolute_delta.max().item()) if delta.numel() else 0.0
+        accumulator = accumulators.setdefault(
+            group,
+            {
+                "tensor_count": 0,
+                "parameter_count": 0,
+                "updated_tensor_count": 0,
+                "absolute_delta_sum": 0.0,
+                "squared_delta_sum": 0.0,
+                "squared_before_sum": 0.0,
+                "squared_after_sum": 0.0,
+                "max_abs_delta": 0.0,
+            },
+        )
+        accumulator["tensor_count"] += 1
+        accumulator["parameter_count"] += delta.numel()
+        accumulator["updated_tensor_count"] += int(maximum > 0.0)
+        accumulator["absolute_delta_sum"] += float(absolute_delta.sum().item())
+        accumulator["squared_delta_sum"] += float(delta.double().square().sum().item())
+        accumulator["squared_before_sum"] += float(
+            before.double().square().sum().item()
+        )
+        accumulator["squared_after_sum"] += float(after.double().square().sum().item())
+        accumulator["max_abs_delta"] = max(
+            float(accumulator["max_abs_delta"]), maximum
+        )
+
+    for name, parameter in trainable_parameters:
+        before = snapshots[name]
+        after = parameter.detach().float().cpu()
+        if before.shape != after.shape:
+            raise ValueError(
+                f"trainable parameter shape changed for {name}: "
+                f"before={tuple(before.shape)}, after={tuple(after.shape)}"
+            )
+        target, matrix = classify_trainable_parameter(name)
+        for group in (
+            "all",
+            f"matrix:{matrix}",
+            f"target:{target}",
+            f"target_matrix:{target}.{matrix}",
+        ):
+            update(group, before, after)
+
+    def finalize(accumulator: dict[str, float | int]) -> dict[str, Any]:
+        parameter_count = int(accumulator["parameter_count"])
+        before_l2 = math.sqrt(float(accumulator["squared_before_sum"]))
+        delta_l2 = math.sqrt(float(accumulator["squared_delta_sum"]))
+        return {
+            "tensor_count": int(accumulator["tensor_count"]),
+            "parameter_count": parameter_count,
+            "updated_tensor_count": int(accumulator["updated_tensor_count"]),
+            "max_abs_delta": float(accumulator["max_abs_delta"]),
+            "mean_abs_delta": (
+                float(accumulator["absolute_delta_sum"]) / parameter_count
+                if parameter_count
+                else 0.0
+            ),
+            "l2_delta": delta_l2,
+            "l2_before": before_l2,
+            "l2_after": math.sqrt(float(accumulator["squared_after_sum"])),
+            "relative_l2_delta": delta_l2 / before_l2 if before_l2 else None,
+        }
+
+    return {
+        "all": finalize(accumulators.pop("all")),
+        "by_lora_matrix": {
+            key.removeprefix("matrix:"): finalize(value)
+            for key, value in sorted(accumulators.items())
+            if key.startswith("matrix:")
+        },
+        "by_target_module": {
+            key.removeprefix("target:"): finalize(value)
+            for key, value in sorted(accumulators.items())
+            if key.startswith("target:")
+        },
+        "by_target_and_matrix": {
+            key.removeprefix("target_matrix:"): finalize(value)
+            for key, value in sorted(accumulators.items())
+            if key.startswith("target_matrix:")
+        },
+    }
+
+
 def policy_reference_description(args: argparse.Namespace) -> dict[str, Any]:
     initialization = getattr(args, "policy_initialization", "continued_adapter")
     if initialization == "merged_sft":
@@ -680,8 +805,9 @@ def main() -> None:
     if not trainable_parameters:
         raise RuntimeError("the policy has no trainable adapter parameters")
     policy.print_trainable_parameters()
+    trainable_parameter_snapshots = snapshot_trainable_parameters(trainable_parameters)
     tracked_name, tracked_parameter = trainable_parameters[0]
-    tracked_before = tracked_parameter.detach().float().cpu().clone()
+    tracked_before = trainable_parameter_snapshots[tracked_name]
     memory_after_load = print_cuda_memory("After model loading")
 
     trainer = GRPOTrainer(
@@ -736,6 +862,17 @@ def main() -> None:
     tracked_after = tracked_parameter.detach().float().cpu()
     parameter_max_abs_delta = float((tracked_after - tracked_before).abs().max().item())
     parameter_updated = parameter_max_abs_delta > 0.0
+    trainable_parameter_drift = summarize_trainable_parameter_drift(
+        trainable_parameters,
+        trainable_parameter_snapshots,
+    )
+    print(
+        "All trainable parameters: "
+        f"updated tensors={trainable_parameter_drift['all']['updated_tensor_count']}/"
+        f"{trainable_parameter_drift['all']['tensor_count']}, "
+        f"max |delta|={trainable_parameter_drift['all']['max_abs_delta']:.8g}, "
+        f"L2 delta={trainable_parameter_drift['all']['l2_delta']:.8g}"
+    )
     metrics_are_finite = all(
         not isinstance(value, float) or math.isfinite(value)
         for value in train_result.metrics.values()
@@ -748,6 +885,7 @@ def main() -> None:
         "tracked_parameter": tracked_name,
         "tracked_parameter_max_abs_delta": parameter_max_abs_delta,
         "tracked_parameter_updated": parameter_updated,
+        "trainable_parameter_drift": trainable_parameter_drift,
         "metrics_are_finite": metrics_are_finite,
         "metrics": train_result.metrics,
         "trainer_log_history": trainer.state.log_history,

@@ -24,3 +24,6 @@
 - [`GRPO_V4_EXPLORATORY_LOG_zh.md`](GRPO_V4_EXPLORATORY_LOG_zh.md)：
   在低温负结果之后开展的低学习率策略漂移 pilot；只改变 GRPO learning rate，预先固定
   step-50 判断门槛，并记录未能保留 SFT 性能的负结果。
+- [`GRPO_ADAPTER_STRUCTURE_DIAGNOSTIC_zh.md`](GRPO_ADAPTER_STRUCTURE_DIAGNOSTIC_zh.md)：
+  检查 tied `lm_head` 导致的全量权重保存及旧单参数漂移指标不足，并定义移除 `lm_head`
+  前必须通过的结构性 smoke 检查。
