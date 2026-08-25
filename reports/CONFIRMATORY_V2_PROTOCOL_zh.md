@@ -142,5 +142,9 @@ Wilson 区间为 76.73%--84.67%。
 dev-select，但现有样本不足以确认显著选择偏差。audit 至此已消费完毕，不再用于调参；
 此前被拒绝的 OPD/GRPO 没有查看 audit。Confirmatory v2 协议正式结束。
 
+协议结束后的 checkpoint 轨迹分析单独记录于
+[`CONFIRMATORY_V2_GRPO_TRAJECTORY_zh.md`](CONFIRMATORY_V2_GRPO_TRAJECTORY_zh.md)，其结论
+仅用于诊断，不属于确认性选型结果。
+
 精确指标、路径及 SHA-256 见
 `results/confirmatory_v2/confirmatory_v2_progress.json`。

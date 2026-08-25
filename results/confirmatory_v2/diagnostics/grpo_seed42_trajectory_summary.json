@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "status": "complete",
+  "analysis_type": "post_hoc_exploratory_checkpoint_trajectory",
+  "created_on": "2026-08-25",
+  "warning": "This diagnostic must not replace the predeclared step-200 confirmatory result and must not be treated as checkpoint selection.",
+  "initial_policy": "outputs/confirmatory_v2/merged_sft_seed42",
+  "run": "outputs/confirmatory_v2/grpo_data42_train42_gen42_steps200",
+  "dataset": "data/confirmatory_v2/dev_select.json",
+  "dataset_sha256": "56294656ac61bf26176d80a3af41c37c52ae7af32d6a7efcafed86e1cf2c1c4e",
+  "evaluation_version": "gsm8k_numeric_v3",
+  "num_samples": 374,
+  "generation": {
+    "do_sample": false,
+    "max_new_tokens": 1024,
+    "stop_after_completed_answer_line": false
+  },
+  "trajectory": [
+    {
+      "step": 0,
+      "source": "results/confirmatory_v2/dev/sft_seed42_dev_select_v3.json",
+      "correct": 313,
+      "accuracy": 0.8368983957219251,
+      "strict_correct": 313,
+      "format_compliant": 373,
+      "hit_max_new_tokens": 3,
+      "mean_generated_tokens": 96.82620320855615
+    },
+    {
+      "step": 50,
+      "source": "results/confirmatory_v2/diagnostics/grpo_seed42_checkpoint50_dev_select_v3.json",
+      "source_sha256": "5db387141b0d0104a482c42407f7b70516e1a30485daf03554158fe94d73cc5c",
+      "correct": 293,
+      "accuracy": 0.7834224598930482,
+      "strict_correct": 288,
+      "format_compliant": 352,
+      "hit_max_new_tokens": 23,
+      "mean_generated_tokens": 153.30748663101605,
+      "sft_correct_to_grpo_wrong": 32,
+      "sft_wrong_to_grpo_correct": 12,
+      "mcnemar_exact_two_sided_p": 0.003657766827927844
+    },
+    {
+      "step": 100,
+      "source": "results/confirmatory_v2/diagnostics/grpo_seed42_checkpoint100_dev_select_v3.json",
+      "source_sha256": "9e74ce085d419f7cda0a77beb967a45ecd7ad289a4f3a0ed177261621b9a4e35",
+      "correct": 291,
+      "accuracy": 0.7780748663101604,
+      "strict_correct": 287,
+      "format_compliant": 355,
+      "hit_max_new_tokens": 21,
+      "mean_generated_tokens": 147.36631016042782,
+      "sft_correct_to_grpo_wrong": 32,
+      "sft_wrong_to_grpo_correct": 10,
+      "mcnemar_exact_two_sided_p": 0.0009406740282429382
+    },
+    {
+      "step": 150,
+      "source": "results/confirmatory_v2/diagnostics/grpo_seed42_checkpoint150_dev_select_v3.json",
+      "source_sha256": "7c5e2c28d3701219bbdf4aacab55df30883b5109819695e6b84ed65cd7bb0217",
+      "correct": 291,
+      "accuracy": 0.7780748663101604,
+      "strict_correct": 285,
+      "format_compliant": 352,
+      "hit_max_new_tokens": 22,
+      "mean_generated_tokens": 150.2379679144385,
+      "sft_correct_to_grpo_wrong": 30,
+      "sft_wrong_to_grpo_correct": 8,
+      "mcnemar_exact_two_sided_p": 0.0004719867429230362
+    },
+    {
+      "step": 200,
+      "source": "results/confirmatory_v2/dev/grpo_data42_train42_gen42_step200_dev_select_v3.json",
+      "correct": 296,
+      "accuracy": 0.7914438502673797,
+      "strict_correct": 294,
+      "format_compliant": 358,
+      "hit_max_new_tokens": 17,
+      "mean_generated_tokens": 137.47860962566844,
+      "sft_correct_to_grpo_wrong": 28,
+      "sft_wrong_to_grpo_correct": 11,
+      "mcnemar_exact_two_sided_p": 0.009475304279476404
+    }
+  ],
+  "interpretation": {
+    "primary": "The statistically significant regression is already present by step 50 and persists through step 200.",
+    "step_count": "Performance partially recovers after step 150, so monotonic over-training alone does not explain the regression.",
+    "likely_scope": "The evidence is more consistent with an early mismatch among rollout sampling, reward/credit assignment, and deterministic evaluation behavior. This is a diagnostic inference, not a causal identification.",
+    "next_protocol": "Any reward, KL, temperature, or completion-length ablation requires a new development protocol and must not use dev_audit, GSM8K test, or SVAMP for tuning."
+  }
+}

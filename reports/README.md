@@ -16,3 +16,6 @@
 - [`CONFIRMATORY_V2_PROTOCOL_zh.md`](CONFIRMATORY_V2_PROTOCOL_zh.md)：
   针对单 SFT seed、开发集选择偏差、小训练预算、seed 混杂和 GRPO KL reference
   问题的新一轮确认性实验协议。
+- [`CONFIRMATORY_V2_GRPO_TRAJECTORY_zh.md`](CONFIRMATORY_V2_GRPO_TRAJECTORY_zh.md)：
+  确认性实验结束后的 GRPO seed42 checkpoint 轨迹诊断；明确标记为 post-hoc，不能用于
+  事后替换正式 step-200 结果。
