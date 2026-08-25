@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "smoke_passed_awaiting_formal_training",
+  "status": "formal_training_complete_awaiting_final_evaluation",
   "created_on": "2026-08-25",
   "analysis_type": "post_hoc_exploratory_structural_single_factor_pilot",
   "hypothesis": "Removing the tied lm_head from the fresh GRPO LoRA targets eliminates the full lm_head base-layer serialization path and may preserve more of the merged SFT policy.",
@@ -148,5 +148,47 @@
     "finite_metrics_passed": true,
     "tied_lm_head_path_removed": true,
     "all_conditions_passed": true
+  },
+  "formal_training_completed_on": "2026-08-25",
+  "formal_training_artifacts": {
+    "run_manifest": "outputs/exploratory_v5/grpo_qv_only_data42_train42_gen42_steps50/run_manifest.json",
+    "run_manifest_sha256": "c36f728d3aa1f0a2357bafde017f74662178cd2a22753a925bc6475e65fa07be",
+    "run_summary": "outputs/exploratory_v5/grpo_qv_only_data42_train42_gen42_steps50/grpo_run_summary.json",
+    "run_summary_sha256": "9551931067b07ad626546a1ad535f7c3afa9d80a57761e938cdfba381ee55d83",
+    "final_adapter": "outputs/exploratory_v5/grpo_qv_only_data42_train42_gen42_steps50/final_adapter",
+    "adapter_model_sha256": "40a664a77ae3967ab6dd2a75e144f083e9d838c74ae56e2422a04e9aaaf3cff3"
+  },
+  "formal_training_result": {
+    "status": "success",
+    "completed_steps": 50,
+    "runtime_seconds": 643.4841,
+    "train_loss": -0.05352571532130242,
+    "peak_allocated_gib": 3.5743536949157715,
+    "metrics_finite": true,
+    "all_trainable_tensor_count": 112,
+    "all_trainable_parameter_count": 1089536,
+    "updated_trainable_tensor_count": 112,
+    "all_max_abs_delta": 0.00018035992980003357,
+    "all_mean_abs_delta": 0.000037812184298919126,
+    "all_l2_delta": 0.04891361947104681,
+    "all_relative_l2_delta": 0.004002388918994016,
+    "lora_a_l2_delta": 0.03999514410691073,
+    "lora_b_l2_delta": 0.028159023733535446,
+    "saved_tensor_count": 112,
+    "saved_parameter_count": 1089536,
+    "adapter_model_size_bytes": 4372840,
+    "forbidden_saved_tensor_count": 0
+  },
+  "formal_training_diagnostics_50_step_mean": {
+    "completion_clipped_ratio": 0.435,
+    "completion_mean_length": 177.15,
+    "reward": 0.4799999982304871,
+    "reward_std": 0.3496837930381298,
+    "fraction_zero_reward_std": 0.0,
+    "kl": 0.00025689113997941606,
+    "entropy": 0.3742341446131468,
+    "numeric_accuracy_reward": 0.41,
+    "strict_format_reward": 0.49,
+    "arithmetic_consistency_reward": 0.42
   }
 }

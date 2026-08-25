@@ -123,3 +123,19 @@ time python scripts/train_grpo.py \
 
 如果正式输出目录已经存在，停止并核对，不覆盖或续跑。训练结束后先检查全量漂移和 adapter
 结构，再决定是否执行协议中唯一一次 final step-50 dev-select 评测。
+
+## 正式训练完成，等待最终评测
+
+正式训练于 2026-08-25 正常完成 50 steps / 200 rollouts，耗时 643.48 秒，峰值显存
+3.57 GiB，train loss 为 -0.05353，所有指标有限。
+
+全量漂移显示 112/112 个 LoRA tensor 全部更新：全局最大绝对变化 `1.8036e-4`，L2 delta
+0.04891，相对训练前 LoRA 范数约 0.400%。`lora_A` 和 `lora_B` 的 L2 delta 分别为
+0.04000 和 0.02816。相比旧的单 A 张量，这些数值完整描述了 adapter 更新。
+
+50-step rollout 均值为：截断率 43.50%，平均长度 177.15 tokens，KL `2.569e-4`，
+entropy 0.3742，零组内奖励方差比例为 0%。这些训练期诊断不能代替固定评测。
+
+最终 adapter 仍为 4,372,840 bytes，包含 112 个 tensor 和 1,089,536 个参数，不含任何
+`lm_head` 或 `base_layer`。run manifest、summary 和 adapter 权重哈希已写入冻结配置。
+此时正式 dev-select 结果文件尚不存在。
