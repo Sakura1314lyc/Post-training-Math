@@ -14,6 +14,9 @@
 [SVAMP 泛化报告](reports/SVAMP_EXPERIMENT_REPORT_zh.md)，GRPO 完整分析见
 [GRPO 中文报告](reports/GRPO_EXPERIMENT_REPORT_zh.md)。
 
+项目的最终统一结论、确认性结果、模型选择与停止规则见
+[最终实验总结](reports/FINAL_EXPERIMENT_SUMMARY_zh.md)。
+
 针对旧实验的单 SFT seed、validation 反复查看、OPD/GRPO 小预算、seed 混杂和
 GRPO KL reference 限制，仓库已新增一套与旧结论分开的
 [confirmatory v2 修正协议](reports/CONFIRMATORY_V2_PROTOCOL_zh.md)；具体配置和命令见

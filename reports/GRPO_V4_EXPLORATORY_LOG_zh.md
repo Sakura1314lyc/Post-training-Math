@@ -27,7 +27,7 @@ completion 上限和 50-step / 200-rollout 预算全部保持不变。
 本轮仍只使用已经消费的 dev-select。禁止查看 dev-audit、GSM8K test 或 SVAMP，也禁止
 根据结果继续在同一 dev-select 上扫描更多学习率。
 
-冻结配置见 `configs/experimental/grpo_v4_lr1e6_pilot.json`。结果待本地运行后补充。
+冻结配置与最终机器结果见 `configs/experimental/grpo_v4_lr1e6_pilot.json`。
 
 ## 冻结训练命令
 
@@ -64,7 +64,7 @@ time python scripts/train_grpo.py \
 
 本轮不使用 `--resume-from-checkpoint`，且若目标输出目录已存在则先停止并核对，不覆盖旧结果。
 
-## 训练完成，等待预注册评测
+## 正式训练结果
 
 训练于 2026-08-25 正常完成 50 steps / 200 rollouts，耗时 499.69 秒，峰值显存
 3.59 GiB，train loss 为 -0.05619。跟踪 LoRA 参数最大绝对变化为 `1.6529e-5`，参数确实
@@ -74,8 +74,8 @@ time python scripts/train_grpo.py \
 entropy 0.3835，零组内奖励方差比例为 0%。降低学习率明显缩小了参数更新幅度，但没有改善
 训练 rollout 截断；最终是否保留 SFT 能力仍必须由预注册的 step-50 dev-select 评测决定。
 
-run manifest、summary 与 adapter 权重的 SHA-256 已写入冻结配置。此时尚未运行或查看
-dev-select 结果。
+run manifest、summary 与 adapter 权重的 SHA-256 已写入冻结配置。训练完成后只运行了
+协议预先声明的 final step-50 dev-select 评测。
 
 ## 固定 dev-select 评测结果
 

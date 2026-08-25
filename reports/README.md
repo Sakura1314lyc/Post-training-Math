@@ -1,5 +1,8 @@
 # Reports / 实验报告
 
+- [`FINAL_EXPERIMENT_SUMMARY_zh.md`](FINAL_EXPERIMENT_SUMMARY_zh.md)：
+  项目最终统一总结；区分早期探索、Confirmatory v2、一次性 audit 和 post-hoc GRPO
+  诊断，并给出最终模型选择、可支持结论、停止规则与未来研究边界。
 - [`SFT_EXPERIMENT_REPORT_zh.md`](SFT_EXPERIMENT_REPORT_zh.md)：
   Qwen2.5-Math-1.5B 在 GSM8K 上的完整 LoRA-SFT 实验报告，包含迭代过程、
   validation/test 配对结果、效率分析、负结果和下一步建议。

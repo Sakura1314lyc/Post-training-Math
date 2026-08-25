@@ -12,6 +12,10 @@ final/          # 官方 GSM8K test 最终结果
 opd/            # 教师、OPD checkpoint 选择、validation 与最终 test
 svamp/          # 独立 SVAMP 泛化评测协议与结果
 grpo/           # GRPO 三随机种子训练、正式评测、配对分析与汇总
+confirmatory_v2/ # 多 seed、大预算、冻结 audit 的确认性修正实验
+exploratory_v3/ # GRPO 低温 post-hoc 单因素负结果
+exploratory_v4/ # GRPO 低学习率 post-hoc 单因素负结果
+exploratory_v5/ # GRPO 移除 tied lm_head 的结构消融负结果
 archive/        # 历史 Instruct 与 0.5B 实验
 ```
 
@@ -82,3 +86,15 @@ SFT 低 0.30 pp。完整汇总、协议说明和配对文件见 [`grpo/README.md
 - 所有正式对比必须保证相同 `evaluation_version`、样本集合、prompt 和生成参数；
 - 数值准确率、严格格式准确率、格式遵循率与终止行为分别报告；
 - `outputs/` 中的 LoRA checkpoint 不提交到 Git。
+
+## Confirmatory v2 与最终边界
+
+确认性修正实验已经完成。SFT 三 seed 的 dev-select 均值为 83.78% ± 1.47 pp；规范
+seed42 在一次性 dev-audit 上为 303/374（81.02%）。扩大到 200 steps 后，OPD 因格式与
+终止行为崩坏被拒绝，GRPO 三 seed 均显著低于规范 SFT，也被拒绝。完整机器汇总见
+[`confirmatory_v2/confirmatory_v2_progress.json`](confirmatory_v2/confirmatory_v2_progress.json)。
+
+协议结束后的 exploratory v3--v5 只使用已经消费的 dev-select，分别检验低 temperature、
+低 learning rate 和移除 tied `lm_head`，均为负结果。它们不改变确认性结论，也不得据此
+继续查看 audit、GSM8K test 或 SVAMP。项目统一结论见
+[`../reports/FINAL_EXPERIMENT_SUMMARY_zh.md`](../reports/FINAL_EXPERIMENT_SUMMARY_zh.md)。
