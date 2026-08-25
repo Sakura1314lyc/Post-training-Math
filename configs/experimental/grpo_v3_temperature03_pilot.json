@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "preregistered_before_run",
+  "status": "completed_negative_result",
   "created_on": "2026-08-25",
   "analysis_type": "post_hoc_exploratory_single_factor_pilot",
   "hypothesis": "Lowering rollout temperature from 0.9 to 0.3 reduces truncated generations and may reduce the early dev-select regression observed by step 50.",
@@ -55,5 +55,70 @@
     "dev_audit",
     "GSM8K test",
     "SVAMP"
-  ]
+  ],
+  "completed_on": "2026-08-25",
+  "artifacts": {
+    "run_manifest": "outputs/exploratory_v3/grpo_temp03_data42_train42_gen42_steps50/run_manifest.json",
+    "run_manifest_sha256": "e7a17a8bff7528d2cf08e73fadf6442278d4b7e9f94629a2480c909653e0af15",
+    "run_summary": "outputs/exploratory_v3/grpo_temp03_data42_train42_gen42_steps50/grpo_run_summary.json",
+    "run_summary_sha256": "1f54f1ce3a04fb7794fdbcba896a46837341b0b640d323965dc0e2230c1093c3",
+    "final_adapter": "outputs/exploratory_v3/grpo_temp03_data42_train42_gen42_steps50/final_adapter",
+    "adapter_model_sha256": "74f28223b1cb0f4c06ea5f95ecfb30797dc5693f887b45cc8e6cb0529cf2184b",
+    "dev_select_result": "results/exploratory_v3/grpo_temp03_data42_train42_gen42_step50_dev_select_v3.json",
+    "sft_transition_analysis": "results/exploratory_v3/sft_vs_grpo_temp03_step50_transition_analysis.json",
+    "temperature_transition_analysis": "results/exploratory_v3/grpo_temp09_vs_temp03_step50_transition_analysis.json"
+  },
+  "training_result": {
+    "runtime_seconds": 343.4703,
+    "train_loss": -0.08524253291491732,
+    "peak_allocated_gib": 3.5941996574401855,
+    "tracked_parameter_max_abs_delta": 0.0001680422574,
+    "parameter_updated": true,
+    "metrics_finite": true
+  },
+  "rollout_diagnostics_first_50_step_mean": {
+    "temperature_0_9": {
+      "completion_clipped_ratio": 0.46,
+      "completion_mean_length": 177.615,
+      "reward": 0.43875,
+      "reward_std": 0.37952,
+      "fraction_zero_reward_std": 0.0,
+      "entropy": 0.34836
+    },
+    "temperature_0_3": {
+      "completion_clipped_ratio": 0.325,
+      "completion_mean_length": 127.575,
+      "reward": 0.7265,
+      "reward_std": 0.2159,
+      "fraction_zero_reward_std": 0.28,
+      "entropy": 0.07635
+    }
+  },
+  "dev_select_result": {
+    "numeric_correct": 294,
+    "numeric_accuracy": 0.786096256684492,
+    "strict_correct": 286,
+    "strict_accuracy": 0.7647058823529411,
+    "format_compliant": 347,
+    "format_compliance_rate": 0.9278074866310161,
+    "hit_max_new_tokens_count": 29,
+    "hit_max_new_tokens_rate": 0.07754010695187166,
+    "mean_generated_tokens": 166.75401069518716,
+    "median_generated_tokens": 90.0
+  },
+  "paired_comparisons": {
+    "versus_sft_step_0": {
+      "accuracy_delta": -0.05080213903743316,
+      "sft_correct_treatment_wrong": 31,
+      "sft_wrong_treatment_correct": 12,
+      "mcnemar_exact_two_sided_p": 0.005401572654591291
+    },
+    "versus_temperature_0_9_step_50": {
+      "accuracy_delta": 0.00267379679144385,
+      "temperature_0_9_correct_temperature_0_3_wrong": 6,
+      "temperature_0_9_wrong_temperature_0_3_correct": 7,
+      "mcnemar_exact_two_sided_p": 1.0
+    }
+  },
+  "conclusion": "Temperature 0.3 improved sampled rollout length and clipping diagnostics but did not recover dev-select performance. It remained significantly below the SFT initialization and was statistically indistinguishable from temperature 0.9 at step 50."
 }
