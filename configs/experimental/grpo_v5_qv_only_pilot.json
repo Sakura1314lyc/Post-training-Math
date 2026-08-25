@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_before_smoke",
+  "created_on": "2026-08-25",
+  "analysis_type": "post_hoc_exploratory_structural_single_factor_pilot",
+  "hypothesis": "Removing the tied lm_head from the fresh GRPO LoRA targets eliminates the full lm_head base-layer serialization path and may preserve more of the merged SFT policy.",
+  "rationale": "The existing q_proj,v_proj,lm_head adapter saves a 233,373,696-parameter lm_head base tensor and emits a tied-target warning. Temperature and learning-rate single-factor fixes both failed.",
+  "baseline": {
+    "run": "outputs/confirmatory_v2/grpo_data42_train42_gen42_steps200/checkpoint-50",
+    "lora_target_modules": [
+      "q_proj",
+      "v_proj",
+      "lm_head"
+    ],
+    "dev_select_result": "results/confirmatory_v2/diagnostics/grpo_seed42_checkpoint50_dev_select_v3.json",
+    "numeric_correct": 293,
+    "numeric_accuracy": 0.7834224598930482,
+    "training_steps": 50
+  },
+  "sft_reference": {
+    "model": "outputs/confirmatory_v2/merged_sft_seed42",
+    "dev_select_result": "results/confirmatory_v2/dev/sft_seed42_dev_select_v3.json",
+    "numeric_correct": 313,
+    "numeric_accuracy": 0.8368983957219251
+  },
+  "treatment": {
+    "smoke_output": "outputs/exploratory_v5/grpo_qv_only_smoke",
+    "formal_output": "outputs/exploratory_v5/grpo_qv_only_data42_train42_gen42_steps50",
+    "lora_target_modules": [
+      "q_proj",
+      "v_proj"
+    ],
+    "training_steps": 50
+  },
+  "controlled_settings": {
+    "initial_policy": "outputs/confirmatory_v2/merged_sft_seed42",
+    "policy_initialization": "merged_sft",
+    "kl_reference": "merged_sft_policy",
+    "dataset": "data/gsm8k_sft_clean.json",
+    "split_manifest": "data/confirmatory_v2/split_manifest.json",
+    "formal_num_samples": 1024,
+    "num_generations": 4,
+    "gradient_accumulation_steps": 4,
+    "max_prompt_length": 512,
+    "max_completion_length": 256,
+    "learning_rate": 0.000005,
+    "lr_scheduler": "constant",
+    "temperature": 0.9,
+    "top_p": 1.0,
+    "beta": 0.04,
+    "lora_rank": 8,
+    "lora_alpha": 16,
+    "accuracy_reward_weight": 1.0,
+    "format_reward_weight": 0.1,
+    "arithmetic_consistency_reward_weight": 0.05,
+    "mask_truncated_completions": true,
+    "data_seed": 42,
+    "training_seed": 42,
+    "generation_seed": 42
+  },
+  "smoke_gate": {
+    "max_steps": 1,
+    "num_samples": 8,
+    "required_trainable_parameter_count": 1089536,
+    "required_trainable_tensor_count": 112,
+    "required_target_modules": [
+      "q_proj",
+      "v_proj"
+    ],
+    "forbidden_saved_tensor_substrings": [
+      "lm_head",
+      "base_layer"
+    ],
+    "adapter_model_size_bytes_maximum": 10485760,
+    "parameter_update_required": true,
+    "finite_metrics_required": true,
+    "tied_lm_head_warning_forbidden": true,
+    "formal_training_requires_all_conditions": true
+  },
+  "formal_evaluation": {
+    "split": "dev_select",
+    "num_samples": 374,
+    "checkpoint": "final_step_50_only",
+    "do_sample": false,
+    "max_new_tokens": 1024,
+    "stop_after_completed_answer_line": false,
+    "intermediate_checkpoint_selection_prohibited": true
+  },
+  "predeclared_promising_threshold": {
+    "numeric_correct_minimum": 306,
+    "numeric_accuracy_minimum": 0.8181818181818182,
+    "format_compliance_rate_minimum": 0.97,
+    "hit_max_new_tokens_rate_maximum": 0.03,
+    "all_conditions_required": true,
+    "interpretation": "Meeting the threshold only motivates evaluation on newly frozen data; it does not establish a confirmatory improvement."
+  },
+  "planned_paired_comparisons": [
+    "qv_only_treatment_vs_sft_step_0",
+    "qv_only_treatment_vs_qv_lm_head_step_50"
+  ],
+  "decision_boundary": "This is the final GRPO pilot allowed to reuse dev_select. Do not inspect intermediate checkpoints or run another dev_select hyperparameter scan. A positive result requires newly frozen data for replication.",
+  "prohibited_data": [
+    "dev_audit",
+    "GSM8K test",
+    "SVAMP"
+  ]
+}
