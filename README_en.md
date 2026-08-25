@@ -28,8 +28,11 @@ The confirmatory-v2 dev-select stage is complete. Three-seed SFT accuracy is
 `83.78% ± 1.47 pp`. OPD reaches `82.80% ± 1.32 pp` but collapses to `2.58%`
 format compliance. GRPO with the correct SFT KL reference reaches
 `78.61% ± 0.53 pp`; all three runs are significantly worse than canonical
-SFT seed42. OPD and GRPO are therefore rejected before audit, while
-`dev_audit` remains sealed. The machine-readable summary is
+SFT seed42. OPD and GRPO were therefore rejected before audit. The predeclared
+SFT seed42 was then evaluated exactly once on `dev_audit`, reaching `81.02%`.
+This is 2.67 pp below dev-select, but the independent two-proportion difference
+is not significant (`p=0.3375`). The protocol is now complete and the audit
+result must not be used for further tuning. The machine-readable summary is
 [`results/confirmatory_v2/confirmatory_v2_progress.json`](results/confirmatory_v2/confirmatory_v2_progress.json).
 
 ## Final result

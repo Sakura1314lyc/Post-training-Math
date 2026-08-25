@@ -23,7 +23,9 @@ GRPO KL reference 限制，仓库已新增一套与旧结论分开的
 Confirmatory v2 的 dev-select 阶段已完成：SFT 三 seed 为 `83.78% ± 1.47 pp`；
 OPD 三 seed 为 `82.80% ± 1.32 pp`，但格式合规率仅 `2.58%`；使用正确 SFT KL
 reference 的 GRPO 三 seed 为 `78.61% ± 0.53 pp`，三次均显著低于规范 SFT seed42。
-因此 OPD/GRPO 均在 audit 前被拒绝，`dev_audit` 仍保持封存。机器可读汇总见
+因此 OPD/GRPO 均在 audit 前被拒绝。预先指定的 SFT seed42 随后仅进行一次
+`dev_audit`，得到 `81.02%`；相比 dev-select 低 2.67 pp，但独立两比例检验不显著
+（`p=0.3375`）。当前协议已经结束，audit 不再用于调参。机器可读汇总见
 [`results/confirmatory_v2/confirmatory_v2_progress.json`](results/confirmatory_v2/confirmatory_v2_progress.json)。
 
 ## 最终结果

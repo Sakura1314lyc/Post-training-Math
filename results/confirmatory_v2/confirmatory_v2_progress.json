@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "status": "dev_select_complete_audit_sealed",
-  "updated_on": "2026-08-24",
+  "status": "complete",
+  "updated_on": "2026-08-25",
   "protocol": "gsm8k_confirmatory_v2",
   "base_model": "Qwen/Qwen2.5-Math-1.5B",
   "split": {
@@ -12,7 +12,7 @@
     "dev_select": 374,
     "dev_audit": 374,
     "partitions_disjoint": true,
-    "dev_audit_status": "sealed_unevaluated"
+    "dev_audit_status": "evaluated_once_canonical_sft_only"
   },
   "sft": {
     "training_examples": 6725,
@@ -416,7 +416,7 @@
     }
   },
   "audit_selection": {
-    "status": "sealed_pending_canonical_sft_decision",
+    "status": "complete_no_further_use",
     "eligible": [
       "outputs/confirmatory_v2/sft_seed42/checkpoint-841"
     ],
@@ -424,6 +424,30 @@
       "opd": "Severe strict-format and termination regression despite similar relaxed numerical accuracy.",
       "grpo": "All three seeds significantly reduced dev_select numerical accuracy relative to canonical SFT."
     },
-    "rule": "Do not evaluate rejected OPD/GRPO configurations on dev_audit. If the study requires one final unbiased SFT estimate, evaluate only the predeclared canonical SFT seed42 once in a later session."
+    "rule": "Only the predeclared canonical SFT seed42 was evaluated once. Rejected OPD/GRPO configurations were not evaluated on dev_audit, and no current method may be tuned against this result.",
+    "canonical_sft_audit": {
+      "source": "results/confirmatory_v2/audit/sft_seed42_dev_audit_v3.json",
+      "source_sha256": "aac8d49b05ec890c16516e7e85c8fc407844811026d68e742f83e05fdc8b041f",
+      "dataset_sha256": "5ffacdc2d7990a656882ac02f9a3ea1a551d659659778b9c934707641220f4e6",
+      "num_samples": 374,
+      "correct": 303,
+      "accuracy": 0.8101604278074866,
+      "strict_correct": 303,
+      "strict_accuracy": 0.8101604278074866,
+      "format_compliant": 372,
+      "format_compliance_rate": 0.9946524064171123,
+      "hit_max_new_tokens": 2,
+      "hit_max_new_tokens_rate": 0.0053475935828877,
+      "mean_generated_tokens": 98.8903743315508,
+      "dev_select_accuracy": 0.8368983957219251,
+      "accuracy_delta_audit_minus_dev_select": -0.0267379679144385,
+      "independent_two_proportion_z": -0.9591211706105852,
+      "independent_two_proportion_two_sided_p": 0.33749770639551646,
+      "audit_accuracy_wilson_95": [
+        0.767338307069765,
+        0.8466758371803405
+      ],
+      "interpretation": "The sealed audit estimate is 2.67 pp below dev_select, but the difference is not statistically significant. Report 81.02% as the final unbiased canonical-SFT estimate without further tuning."
+    }
   }
 }

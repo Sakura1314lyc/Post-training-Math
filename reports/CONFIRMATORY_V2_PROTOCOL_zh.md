@@ -71,10 +71,10 @@ OPD 和 GRPO 现在分别记录并控制：
 
 完整命令见 `configs/confirmatory/README.md`。
 
-## 当前进度（2026-08-24）
+## 最终进度（2026-08-25）
 
 - 已冻结 6725/374/374 的 train/dev-select/dev-audit 切分，三者互斥且覆盖全部
-  7473 条数据；audit 仍未评测。
+  7473 条数据；audit 在所有选择规则提交冻结后仅评测一次。
 - SFT seed 42/43/44 均完成 1 epoch、841 steps。dev-select 数值准确率分别为
   83.69%、82.35%、85.29%，均值为 **83.78% ± 1.47 pp**（样本 SD）。
 - 后续固定使用规范 seed 42 作为共同 SFT 起点，不选择 dev-select 最好的 seed 44。
@@ -130,8 +130,17 @@ OPD 和 GRPO 现在分别记录并控制：
 4.55、5.61、5.08 pp，且三次 McNemar 检验均显著。两种方法均在进入 audit 前被拒绝，
 不能选择其中“最好的一次”规避负结果。
 
-`dev_audit` 到今天结束时仍完全封存。若研究任务需要一个最终无偏 SFT 点估计，下一阶段
-只允许对预先指定的规范 SFT seed42 执行一次 audit；已拒绝的 OPD/GRPO 不再消耗 audit。
+### 一次性 Dev-audit
+
+预先指定的规范 SFT seed42 在 `dev_audit` 上得到 303/374（**81.02%**），严格准确率
+同为 81.02%，格式合规率 99.47%，截断率 0.53%，平均生成 98.89 tokens。相比它在
+`dev_select` 上的 83.69%，audit 低 2.67 pp。由于两个分区互斥，不能使用 McNemar；
+独立两比例双侧检验得到 `z=-0.959`、`p=0.3375`，差异不显著。audit 准确率的 95%
+Wilson 区间为 76.73%--84.67%。
+
+因此最终报告以 **81.02%** 作为未参与调参的规范 SFT 点估计，同时如实说明其低于
+dev-select，但现有样本不足以确认显著选择偏差。audit 至此已消费完毕，不再用于调参；
+此前被拒绝的 OPD/GRPO 没有查看 audit。Confirmatory v2 协议正式结束。
 
 精确指标、路径及 SHA-256 见
 `results/confirmatory_v2/confirmatory_v2_progress.json`。
