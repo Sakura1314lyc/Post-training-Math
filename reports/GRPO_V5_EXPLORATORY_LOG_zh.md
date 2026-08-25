@@ -86,3 +86,40 @@ Smoke 于 2026-08-25 完成，训练耗时 12.52 秒，峰值显存 3.56 GiB，�
 
 所有 smoke gate 条件通过，可以进入冻结的正式 50-step 训练。此时尚未运行正式训练或查看
 任何新的 dev-select 结果。
+
+## 冻结正式训练命令
+
+```bash
+cd /home/sakura/projects/llm/post-training-math
+conda activate sft
+
+time python scripts/train_grpo.py \
+  --policy-initialization merged_sft \
+  --merged-sft-model outputs/confirmatory_v2/merged_sft_seed42 \
+  --lora-target-modules q_proj,v_proj \
+  --dataset data/gsm8k_sft_clean.json \
+  --split-manifest data/confirmatory_v2/split_manifest.json \
+  --output-dir outputs/exploratory_v5/grpo_qv_only_data42_train42_gen42_steps50 \
+  --num-samples 1024 \
+  --max-steps 50 \
+  --num-generations 4 \
+  --gradient-accumulation-steps 4 \
+  --max-prompt-length 512 \
+  --max-completion-length 256 \
+  --learning-rate 5e-6 \
+  --temperature 0.9 \
+  --top-p 1.0 \
+  --beta 0.04 \
+  --accuracy-reward-weight 1.0 \
+  --format-reward-weight 0.1 \
+  --arithmetic-consistency-reward-weight 0.05 \
+  --data-seed 42 \
+  --training-seed 42 \
+  --generation-seed 42 \
+  --save-steps 50 \
+  --save-total-limit 1 \
+  --save-final-adapter
+```
+
+如果正式输出目录已经存在，停止并核对，不覆盖或续跑。训练结束后先检查全量漂移和 adapter
+结构，再决定是否执行协议中唯一一次 final step-50 dev-select 评测。
