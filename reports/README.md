@@ -19,3 +19,5 @@
 - [`CONFIRMATORY_V2_GRPO_TRAJECTORY_zh.md`](CONFIRMATORY_V2_GRPO_TRAJECTORY_zh.md)：
   确认性实验结束后的 GRPO seed42 checkpoint 轨迹诊断；明确标记为 post-hoc，不能用于
   事后替换正式 step-200 结果。
+- [`GRPO_V3_EXPLORATORY_LOG_zh.md`](GRPO_V3_EXPLORATORY_LOG_zh.md)：
+  确认性协议结束后的单因素探索性消融日志；与主结论隔离，不使用 audit/test/SVAMP 调参。

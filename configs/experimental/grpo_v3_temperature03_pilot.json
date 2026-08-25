@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_before_run",
+  "created_on": "2026-08-25",
+  "analysis_type": "post_hoc_exploratory_single_factor_pilot",
+  "hypothesis": "Lowering rollout temperature from 0.9 to 0.3 reduces truncated generations and may reduce the early dev-select regression observed by step 50.",
+  "baseline": {
+    "run": "outputs/confirmatory_v2/grpo_data42_train42_gen42_steps200/checkpoint-50",
+    "temperature": 0.9,
+    "dev_select_result": "results/confirmatory_v2/diagnostics/grpo_seed42_checkpoint50_dev_select_v3.json",
+    "accuracy": 0.7834224598930482,
+    "training_steps": 50
+  },
+  "treatment": {
+    "output": "outputs/exploratory_v3/grpo_temp03_data42_train42_gen42_steps50",
+    "temperature": 0.3,
+    "training_steps": 50
+  },
+  "controlled_settings": {
+    "initial_policy": "outputs/confirmatory_v2/merged_sft_seed42",
+    "dataset": "data/gsm8k_sft_clean.json",
+    "split_manifest": "data/confirmatory_v2/split_manifest.json",
+    "num_samples": 1024,
+    "num_generations": 4,
+    "gradient_accumulation_steps": 4,
+    "max_prompt_length": 512,
+    "max_completion_length": 256,
+    "learning_rate": 0.000005,
+    "lr_scheduler": "constant",
+    "beta": 0.04,
+    "accuracy_reward_weight": 1.0,
+    "format_reward_weight": 0.1,
+    "arithmetic_consistency_reward_weight": 0.05,
+    "data_seed": 42,
+    "training_seed": 42,
+    "generation_seed": 42
+  },
+  "evaluation": {
+    "split": "dev_select",
+    "num_samples": 374,
+    "do_sample": false,
+    "max_new_tokens": 1024,
+    "stop_after_completed_answer_line": false
+  },
+  "primary_metric": "dev_select_numeric_accuracy",
+  "diagnostics": [
+    "training_completion_clipped_ratio",
+    "dev_select_strict_accuracy",
+    "dev_select_format_compliance",
+    "dev_select_hit_max_new_tokens_rate",
+    "dev_select_mean_generated_tokens"
+  ],
+  "decision_boundary": "This single-seed pilot may motivate a new independent protocol but cannot modify confirmatory-v2 conclusions or select a deployable model.",
+  "prohibited_data": [
+    "dev_audit",
+    "GSM8K test",
+    "SVAMP"
+  ]
+}
