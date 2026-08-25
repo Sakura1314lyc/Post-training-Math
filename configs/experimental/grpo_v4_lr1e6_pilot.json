@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_before_run",
+  "created_on": "2026-08-25",
+  "analysis_type": "post_hoc_exploratory_single_factor_pilot",
+  "hypothesis": "Reducing the GRPO learning rate from 5e-6 to 1e-6 limits early policy drift and preserves more of the SFT initialization at step 50.",
+  "rationale": "Temperature 0.3 improved sampled rollout diagnostics but did not recover dev-select accuracy. The next isolated factor is update magnitude rather than further rollout-temperature scanning.",
+  "baseline": {
+    "run": "outputs/confirmatory_v2/grpo_data42_train42_gen42_steps200/checkpoint-50",
+    "learning_rate": 0.000005,
+    "temperature": 0.9,
+    "dev_select_result": "results/confirmatory_v2/diagnostics/grpo_seed42_checkpoint50_dev_select_v3.json",
+    "numeric_correct": 293,
+    "numeric_accuracy": 0.7834224598930482,
+    "training_steps": 50
+  },
+  "sft_reference": {
+    "model": "outputs/confirmatory_v2/merged_sft_seed42",
+    "dev_select_result": "results/confirmatory_v2/dev/sft_seed42_dev_select_v3.json",
+    "numeric_correct": 313,
+    "numeric_accuracy": 0.8368983957219251
+  },
+  "treatment": {
+    "output": "outputs/exploratory_v4/grpo_lr1e6_data42_train42_gen42_steps50",
+    "learning_rate": 0.000001,
+    "temperature": 0.9,
+    "training_steps": 50
+  },
+  "controlled_settings": {
+    "initial_policy": "outputs/confirmatory_v2/merged_sft_seed42",
+    "policy_initialization": "merged_sft",
+    "kl_reference": "merged_sft_policy",
+    "dataset": "data/gsm8k_sft_clean.json",
+    "split_manifest": "data/confirmatory_v2/split_manifest.json",
+    "num_samples": 1024,
+    "num_generations": 4,
+    "gradient_accumulation_steps": 4,
+    "max_prompt_length": 512,
+    "max_completion_length": 256,
+    "lr_scheduler": "constant",
+    "top_p": 1.0,
+    "beta": 0.04,
+    "accuracy_reward_weight": 1.0,
+    "format_reward_weight": 0.1,
+    "arithmetic_consistency_reward_weight": 0.05,
+    "data_seed": 42,
+    "training_seed": 42,
+    "generation_seed": 42
+  },
+  "evaluation": {
+    "split": "dev_select",
+    "num_samples": 374,
+    "checkpoint": "final_step_50_only",
+    "do_sample": false,
+    "max_new_tokens": 1024,
+    "stop_after_completed_answer_line": false,
+    "intermediate_checkpoint_selection_prohibited": true
+  },
+  "primary_metric": "dev_select_numeric_accuracy",
+  "diagnostics": [
+    "training_parameter_max_abs_delta",
+    "training_kl",
+    "training_completion_clipped_ratio",
+    "training_fraction_zero_reward_std",
+    "dev_select_strict_accuracy",
+    "dev_select_format_compliance",
+    "dev_select_hit_max_new_tokens_rate",
+    "dev_select_mean_generated_tokens"
+  ],
+  "predeclared_promising_threshold": {
+    "numeric_correct_minimum": 306,
+    "numeric_accuracy_minimum": 0.8181818181818182,
+    "format_compliance_rate_minimum": 0.97,
+    "hit_max_new_tokens_rate_maximum": 0.03,
+    "all_conditions_required": true,
+    "interpretation": "Meeting the threshold only motivates independent replication; it does not establish a confirmatory improvement."
+  },
+  "planned_paired_comparisons": [
+    "treatment_vs_sft_step_0",
+    "treatment_vs_learning_rate_5e-6_step_50"
+  ],
+  "decision_boundary": "This single-seed pilot cannot modify Confirmatory v2 conclusions or select a deployable model. Do not run additional checkpoint or hyperparameter searches based on this dev-select result.",
+  "prohibited_data": [
+    "dev_audit",
+    "GSM8K test",
+    "SVAMP"
+  ]
+}

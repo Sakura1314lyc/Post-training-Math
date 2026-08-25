@@ -21,3 +21,6 @@
   事后替换正式 step-200 结果。
 - [`GRPO_V3_EXPLORATORY_LOG_zh.md`](GRPO_V3_EXPLORATORY_LOG_zh.md)：
   确认性协议结束后的单因素探索性消融日志；与主结论隔离，不使用 audit/test/SVAMP 调参。
+- [`GRPO_V4_EXPLORATORY_LOG_zh.md`](GRPO_V4_EXPLORATORY_LOG_zh.md)：
+  在低温负结果之后冻结的低学习率策略漂移 pilot；只改变 GRPO learning rate，并预先固定
+  step-50 判断门槛。
