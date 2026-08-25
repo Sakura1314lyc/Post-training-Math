@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "preregistered_before_run",
+  "status": "training_complete_awaiting_predeclared_evaluation",
   "created_on": "2026-08-25",
   "analysis_type": "post_hoc_exploratory_single_factor_pilot",
   "hypothesis": "Reducing the GRPO learning rate from 5e-6 to 1e-6 limits early policy drift and preserves more of the SFT initialization at step 50.",
@@ -84,5 +84,36 @@
     "dev_audit",
     "GSM8K test",
     "SVAMP"
-  ]
+  ],
+  "training_completed_on": "2026-08-25",
+  "training_artifacts": {
+    "run_manifest": "outputs/exploratory_v4/grpo_lr1e6_data42_train42_gen42_steps50/run_manifest.json",
+    "run_manifest_sha256": "d4a6f473ac2733478453603274d0065152b1b612a33918568fdf4431d7ec8bb3",
+    "run_summary": "outputs/exploratory_v4/grpo_lr1e6_data42_train42_gen42_steps50/grpo_run_summary.json",
+    "run_summary_sha256": "b5a392952704d418789b7ddc5e8405a81cdfc662d3c40c7a724552ff84ba4d86",
+    "final_adapter": "outputs/exploratory_v4/grpo_lr1e6_data42_train42_gen42_steps50/final_adapter",
+    "adapter_model_sha256": "6bc7f826fad4be560aad1ea35c6debb44efb4f23b66fed011b59119ec7440c9b"
+  },
+  "training_result": {
+    "status": "success",
+    "completed_steps": 50,
+    "runtime_seconds": 499.6869,
+    "train_loss": -0.05618617318570614,
+    "peak_allocated_gib": 3.5941996574401855,
+    "tracked_parameter_max_abs_delta": 0.000016529113054275513,
+    "parameter_updated": true,
+    "metrics_finite": true
+  },
+  "training_diagnostics_50_step_mean": {
+    "completion_clipped_ratio": 0.46,
+    "completion_mean_length": 182.055,
+    "reward": 0.47149999435991047,
+    "reward_std": 0.36259062074124815,
+    "fraction_zero_reward_std": 0.0,
+    "kl": 0.00024264658211905043,
+    "entropy": 0.3835350586473942,
+    "numeric_accuracy_reward": 0.41,
+    "strict_format_reward": 0.44,
+    "arithmetic_consistency_reward": 0.35
+  }
 }

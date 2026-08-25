@@ -63,3 +63,16 @@ time python scripts/train_grpo.py \
 ```
 
 本轮不使用 `--resume-from-checkpoint`，且若目标输出目录已存在则先停止并核对，不覆盖旧结果。
+
+## 训练完成，等待预注册评测
+
+训练于 2026-08-25 正常完成 50 steps / 200 rollouts，耗时 499.69 秒，峰值显存
+3.59 GiB，train loss 为 -0.05619。跟踪 LoRA 参数最大绝对变化为 `1.6529e-5`，参数确实
+更新且全部训练指标有限。
+
+50-step 均值为：rollout 截断率 46.00%，平均长度 182.06 tokens，KL `2.426e-4`，
+entropy 0.3835，零组内奖励方差比例为 0%。降低学习率明显缩小了参数更新幅度，但没有改善
+训练 rollout 截断；最终是否保留 SFT 能力仍必须由预注册的 step-50 dev-select 评测决定。
+
+run manifest、summary 与 adapter 权重的 SHA-256 已写入冻结配置。此时尚未运行或查看
+dev-select 结果。
