@@ -22,5 +22,5 @@
 - [`GRPO_V3_EXPLORATORY_LOG_zh.md`](GRPO_V3_EXPLORATORY_LOG_zh.md)：
   确认性协议结束后的单因素探索性消融日志；与主结论隔离，不使用 audit/test/SVAMP 调参。
 - [`GRPO_V4_EXPLORATORY_LOG_zh.md`](GRPO_V4_EXPLORATORY_LOG_zh.md)：
-  在低温负结果之后冻结的低学习率策略漂移 pilot；只改变 GRPO learning rate，并预先固定
-  step-50 判断门槛。
+  在低温负结果之后开展的低学习率策略漂移 pilot；只改变 GRPO learning rate，预先固定
+  step-50 判断门槛，并记录未能保留 SFT 性能的负结果。

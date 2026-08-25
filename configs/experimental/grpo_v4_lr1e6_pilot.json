@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "training_complete_awaiting_predeclared_evaluation",
+  "status": "completed_negative_result",
   "created_on": "2026-08-25",
   "analysis_type": "post_hoc_exploratory_single_factor_pilot",
   "hypothesis": "Reducing the GRPO learning rate from 5e-6 to 1e-6 limits early policy drift and preserves more of the SFT initialization at step 50.",
@@ -115,5 +115,62 @@
     "numeric_accuracy_reward": 0.41,
     "strict_format_reward": 0.44,
     "arithmetic_consistency_reward": 0.35
-  }
+  },
+  "evaluation_completed_on": "2026-08-25",
+  "evaluation_runtime_seconds": 2127.72,
+  "evaluation_artifacts": {
+    "dev_select_result": "results/exploratory_v4/grpo_lr1e6_data42_train42_gen42_step50_dev_select_v3.json",
+    "dev_select_result_sha256": "85023095a3a72d307bbb0fba938921d999f02886d32f13fdfa752af1b43dbb85",
+    "sft_transition_analysis": "results/exploratory_v4/sft_vs_grpo_lr1e6_step50_transition_analysis.json",
+    "sft_transition_analysis_sha256": "b5d4b0721a1e8f98079618cc53e6eb88ffec7a7041c50eb24ec6bb448580d6ed",
+    "learning_rate_transition_analysis": "results/exploratory_v4/grpo_lr5e6_vs_lr1e6_step50_transition_analysis.json",
+    "learning_rate_transition_analysis_sha256": "47a870d2f66598ea93d154673a43d8fa798e396be9871a0f86470a959c6b2165",
+    "v3_diagnostic_transition_analysis": "results/exploratory_v4/grpo_temp03_vs_lr1e6_step50_transition_analysis.json",
+    "v3_diagnostic_transition_analysis_sha256": "5d3e177c075921933017033a846e42033f1bdf4581f93fcd61ebb9a98496370b"
+  },
+  "dev_select_result": {
+    "numeric_correct": 294,
+    "numeric_accuracy": 0.786096256684492,
+    "strict_correct": 286,
+    "strict_accuracy": 0.7647058823529411,
+    "format_compliant": 347,
+    "format_compliance_rate": 0.9278074866310161,
+    "hit_max_new_tokens_count": 29,
+    "hit_max_new_tokens_rate": 0.07754010695187166,
+    "mean_generated_tokens": 166.98395721925132,
+    "median_generated_tokens": 92.0
+  },
+  "predeclared_threshold_result": {
+    "numeric_accuracy_passed": false,
+    "format_compliance_passed": false,
+    "hit_max_new_tokens_passed": false,
+    "all_conditions_passed": false
+  },
+  "paired_comparisons": {
+    "versus_sft_step_0": {
+      "accuracy_delta": -0.050802139037433136,
+      "sft_correct_treatment_wrong": 32,
+      "sft_wrong_treatment_correct": 13,
+      "mcnemar_exact_two_sided_p": 0.00660882284228137
+    },
+    "versus_learning_rate_5e6_step_50": {
+      "accuracy_delta": 0.002673796791443861,
+      "learning_rate_5e6_correct_learning_rate_1e6_wrong": 3,
+      "learning_rate_5e6_wrong_learning_rate_1e6_correct": 4,
+      "mcnemar_exact_two_sided_p": 1.0
+    }
+  },
+  "v3_identity_diagnostic": {
+    "comparison": "temperature_0.3_step_50_vs_learning_rate_1e-6_step_50",
+    "same_aggregate_accuracy": true,
+    "same_correctness_count": 362,
+    "different_correctness_count": 12,
+    "same_normalized_prediction_count": 354,
+    "different_normalized_prediction_count": 20,
+    "same_response_count": 265,
+    "different_response_count": 109,
+    "mcnemar_exact_two_sided_p": 1.0,
+    "interpretation": "The identical aggregate metrics are coincidental; the adapter weights, result files, predictions, and responses differ."
+  },
+  "conclusion": "Reducing the learning rate by fivefold reduced the tracked LoRA parameter change but did not preserve SFT performance. The treatment missed every predeclared threshold, remained significantly below SFT, and was statistically indistinguishable from the 5e-6 step-50 baseline."
 }
