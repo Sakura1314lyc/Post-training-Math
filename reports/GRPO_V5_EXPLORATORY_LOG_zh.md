@@ -69,3 +69,20 @@ gate 经脚本与权重检查全部通过后才提供。
 这是最后一次允许复用 dev-select 的 GRPO pilot。禁止查看中间 checkpoint，禁止使用
 dev-audit、GSM8K test 或 SVAMP，也禁止根据结果继续扫描同一 dev-select 上的 target、
 temperature 或 learning rate。
+
+## Smoke 结果
+
+Smoke 于 2026-08-25 完成，训练耗时 12.52 秒，峰值显存 3.56 GiB，指标有限。
+全量漂移统计与预期严格一致：112 个 LoRA tensor、1,089,536 个参数，其中 56 个
+`lora_B` tensor 全部更新，56 个初始非零的 `lora_A` 在第一步尚未更新。全局最大绝对变化
+为 `5.00e-6`，L2 delta 为 `0.003147`。
+
+旧的单参数指标因恰好跟踪第一个 `lora_A` 而显示“未更新”，但全量统计证明训练确实发生。
+这验证了新增诊断的必要性。
+
+保存后的 adapter 权重文件为 4,372,840 bytes（约 4.17 MiB），恰好包含 112 个 tensor、
+1,089,536 个参数；没有任何键包含 `lm_head` 或 `base_layer`。adapter config 的 target
+严格为 `q_proj,v_proj`，因此 tied `lm_head` warning 的触发路径已被移除。
+
+所有 smoke gate 条件通过，可以进入冻结的正式 50-step 训练。此时尚未运行正式训练或查看
+任何新的 dev-select 结果。

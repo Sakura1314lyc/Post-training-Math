@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "preregistered_before_smoke",
+  "status": "smoke_passed_awaiting_formal_training",
   "created_on": "2026-08-25",
   "analysis_type": "post_hoc_exploratory_structural_single_factor_pilot",
   "hypothesis": "Removing the tied lm_head from the fresh GRPO LoRA targets eliminates the full lm_head base-layer serialization path and may preserve more of the merged SFT policy.",
@@ -103,5 +103,50 @@
     "dev_audit",
     "GSM8K test",
     "SVAMP"
-  ]
+  ],
+  "smoke_completed_on": "2026-08-25",
+  "smoke_artifacts": {
+    "run_manifest": "outputs/exploratory_v5/grpo_qv_only_smoke/run_manifest.json",
+    "run_manifest_sha256": "2a1ce03fdbddd5101c44e1438b766322646092732a1d06330e1b62de62ab0319",
+    "run_summary": "outputs/exploratory_v5/grpo_qv_only_smoke/grpo_run_summary.json",
+    "run_summary_sha256": "a53a6273e713e3a20fc1eca3a32540e1c1fc6f5bea58113ee736d999d19fb40a",
+    "final_adapter": "outputs/exploratory_v5/grpo_qv_only_smoke/final_adapter",
+    "adapter_model_sha256": "5b035341e06d6d3e5a358bc81ca58186f334c061d8779fe587b3b8bf884f7a97"
+  },
+  "smoke_result": {
+    "status": "success",
+    "runtime_seconds": 12.5184,
+    "train_loss": -0.21995602548122406,
+    "peak_allocated_gib": 3.559196949005127,
+    "metrics_finite": true,
+    "legacy_first_lora_a_updated": false,
+    "all_trainable_tensor_count": 112,
+    "all_trainable_parameter_count": 1089536,
+    "updated_trainable_tensor_count": 56,
+    "all_max_abs_delta": 0.000004999995326215867,
+    "all_l2_delta": 0.0031465558833876947,
+    "all_relative_l2_delta": 0.0002574689940522779,
+    "lora_a_updated_tensor_count": 0,
+    "lora_b_updated_tensor_count": 56,
+    "saved_tensor_count": 112,
+    "saved_parameter_count": 1089536,
+    "adapter_model_size_bytes": 4372840,
+    "saved_target_modules": [
+      "q_proj",
+      "v_proj"
+    ],
+    "forbidden_saved_tensor_count": 0,
+    "tied_lm_head_warning_trigger_removed": true
+  },
+  "smoke_gate_result": {
+    "trainable_parameter_count_passed": true,
+    "trainable_tensor_count_passed": true,
+    "target_modules_passed": true,
+    "saved_tensor_keys_passed": true,
+    "adapter_size_passed": true,
+    "parameter_update_passed": true,
+    "finite_metrics_passed": true,
+    "tied_lm_head_path_removed": true,
+    "all_conditions_passed": true
+  }
 }
