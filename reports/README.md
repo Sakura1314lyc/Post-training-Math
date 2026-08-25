@@ -28,5 +28,5 @@
   检查 tied `lm_head` 导致的全量权重保存及旧单参数漂移指标不足，并定义移除 `lm_head`
   前必须通过的结构性 smoke 检查。
 - [`GRPO_V5_EXPLORATORY_LOG_zh.md`](GRPO_V5_EXPLORATORY_LOG_zh.md)：
-  冻结移除 tied `lm_head` target 的最后一次 GRPO dev-select pilot；先通过 adapter 结构
-  smoke gate，再决定是否进入正式 50-step 训练。
+  移除 tied `lm_head` target 的最后一次 GRPO dev-select pilot；adapter 结构与体积修复
+  成功，但 final step-50 仍显著低于 SFT，未达到任何 promising 门槛并触发停止规则。

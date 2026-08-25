@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "formal_training_complete_awaiting_final_evaluation",
+  "status": "completed_negative_result",
   "created_on": "2026-08-25",
   "analysis_type": "post_hoc_exploratory_structural_single_factor_pilot",
   "hypothesis": "Removing the tied lm_head from the fresh GRPO LoRA targets eliminates the full lm_head base-layer serialization path and may preserve more of the merged SFT policy.",
@@ -190,5 +190,60 @@
     "numeric_accuracy_reward": 0.41,
     "strict_format_reward": 0.49,
     "arithmetic_consistency_reward": 0.42
+  },
+  "formal_evaluation_completed_on": "2026-08-25",
+  "formal_evaluation_artifacts": {
+    "dev_select_result": "results/exploratory_v5/grpo_qv_only_data42_train42_gen42_step50_dev_select_v3.json",
+    "dev_select_result_sha256": "baff87476b9d16e49e839bfa82f8eb9a3a72c7a4b55aa525b8faac59c11c10d6",
+    "sft_paired_comparison": "results/exploratory_v5/sft_vs_grpo_qv_only_step50_transition_analysis.json",
+    "sft_paired_comparison_sha256": "00197cb4f944ee9739a7eff413043bcbcacb2289a553377313383d3cb4a10e07",
+    "qv_lm_head_paired_comparison": "results/exploratory_v5/grpo_qvlm_vs_qv_only_step50_transition_analysis.json",
+    "qv_lm_head_paired_comparison_sha256": "f92922fff004a2311ce430bf68d059fff7d3392b3feba39ab74e0e3199b42dcc"
+  },
+  "formal_evaluation_result": {
+    "num_samples": 374,
+    "numeric_correct": 294,
+    "numeric_accuracy": 0.786096256684492,
+    "strict_correct": 287,
+    "strict_accuracy": 0.767379679144385,
+    "format_compliant": 352,
+    "format_compliance_rate": 0.9411764705882353,
+    "hit_max_new_tokens_count": 24,
+    "hit_max_new_tokens_rate": 0.06417112299465241,
+    "mean_generated_tokens": 155.36898395721926,
+    "median_generated_tokens": 90.5,
+    "termination_counts": {
+      "eos": 350,
+      "answer_line": 0,
+      "max_new_tokens": 24,
+      "other": 0
+    }
+  },
+  "promising_threshold_result": {
+    "numeric_correct_passed": false,
+    "format_compliance_rate_passed": false,
+    "hit_max_new_tokens_rate_passed": false,
+    "all_conditions_passed": false
+  },
+  "paired_comparison_results": {
+    "versus_sft_step_0": {
+      "accuracy_delta": -0.050802139037433136,
+      "reference_correct_treatment_wrong": 31,
+      "reference_wrong_treatment_correct": 12,
+      "mcnemar_exact_two_sided_p": 0.005401572654591291
+    },
+    "versus_qv_lm_head_step_50": {
+      "accuracy_delta": 0.002673796791443861,
+      "reference_correct_treatment_wrong": 8,
+      "reference_wrong_treatment_correct": 9,
+      "mcnemar_exact_two_sided_p": 1.0
+    }
+  },
+  "final_decision": {
+    "promising_for_new_data_replication": false,
+    "adapter_structure_fix_succeeded": true,
+    "performance_preservation_hypothesis_supported": false,
+    "interpretation": "Removing tied lm_head reduced the saved adapter from about 454 MiB to 4.17 MiB and eliminated forbidden full base-layer tensors, but it did not restore SFT accuracy. The treatment was significantly worse than SFT and statistically indistinguishable from the original q_proj,v_proj,lm_head GRPO run.",
+    "next_action": "Stop GRPO tuning on the reused dev_select split. Do not inspect intermediate checkpoints or launch another dev_select hyperparameter scan."
   }
 }
